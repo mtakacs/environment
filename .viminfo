@@ -2,7 +2,7 @@
 # You may edit it if you're careful!
 
 # Value of 'encoding' when this file was written
-*encoding=latin1
+*encoding=utf-8
 
 
 # hlsearch on (H) or off (h):
@@ -175,43 +175,45 @@ $\1
 # Registers:
 "0	LINE	0
 	path="$path /usr/local/ant/bin"
-"1	LINE	0
+""1	LINE	0
 	
 "2	LINE	0
-	d
+	#   .projects.ede
 "3	LINE	0
-	         "3.2.0/build/dom/dom-style-ie-min.js",
+	.android/
 "4	LINE	0
-	        <link rel="stylesheet" type="text/css" href="/yahoo/mail/assets/style.css" />
-"5	LINE	0
-	        <link type="text/css" rel="stylesheet" href="http://yui.yahooapis.com/2.8.1/build/treeview/assets/skins/sam/treeview.css">
-"6	LINE	0
-	 
-"7	LINE	0
 	
+"5	LINE	0
+	d
+"6	LINE	0
+	         "3.2.0/build/dom/dom-style-ie-min.js",
+"7	LINE	0
+	        <link rel="stylesheet" type="text/css" href="/yahoo/mail/assets/style.css" />
 "8	LINE	0
-	  ByCookieAllowProxyIPs 
+	        <link type="text/css" rel="stylesheet" href="http://yui.yahooapis.com/2.8.1/build/treeview/assets/skins/sam/treeview.css">
 "9	LINE	0
-	OPENMAIL;
-""-	CHAR	0
+	 
+"-	CHAR	0
 	/
 
 # File marks:
-'0  3  0  ~/.gitignore_global
-'1  18  2  ~/.gitignore
-'2  1  0  ~/.gitignore_global
-'3  204  25  ~/.bash_export
-'4  1  35  ~/s/transcode.sh
-'5  104  27  ~/.bash_aliases
-'6  31  0  ~/.bashrc
-'7  8  0  ~/dev/yahoo/ymail/openmail/trunk/apps/samples/ydn/memories/views/main
-'8  12  0  ~/s/0emacs
-'9  25  30  ~/dev/yahoo/ymail/openmail/trunk/conf/openmail_conf_dev.ini
+'0  22  0  ~/.gitignore
+'1  19  4  ~/.gitignore
+'2  3  0  ~/.gitignore_global
+'3  18  2  ~/.gitignore
+'4  1  0  ~/.gitignore_global
+'5  204  25  ~/.bash_export
+'6  1  35  ~/s/transcode.sh
+'7  104  27  ~/.bash_aliases
+'8  31  0  ~/.bashrc
+'9  8  0  ~/dev/yahoo/ymail/openmail/trunk/apps/samples/ydn/memories/views/main
 
 # Jumplist (newest first):
+-'  22  0  ~/.gitignore
+-'  19  0  ~/.gitignore
+-'  18  0  ~/.gitignore
 -'  3  0  ~/.gitignore_global
 -'  1  0  ~/.gitignore_global
--'  18  2  ~/.gitignore
 -'  1  0  ~/.gitignore
 -'  204  25  ~/.bash_export
 -'  25  11  ~/.bash_export
@@ -306,27 +308,15 @@ $\1
 -'  1  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/views/full.html
 -'  3  51  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_visible/config.xml
 -'  1  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_visible/config.xml
--'  4  53  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_visible/config.xml
--'  10  10  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_visible/config.xml
 
 # Buffer list:
-%~/.gitignore_global	3	0
+%~/.gitignore	22	0
 
 # History of marks within files (newest to oldest):
 
-> ~/.gitignore_global
-	"	3	0
-	^	3	0
-	.	3	0
-	+	38	0
-	+	1	1
-	+	2	2
-	+	3	0
-
 > ~/.gitignore
-	"	18	2
-	^	18	3
-	.	18	2
+	"	22	0
+	.	23	0
 	+	18	8
 	+	1	0
 	+	2	0
@@ -346,7 +336,7 @@ $\1
 	+	16	0
 	+	17	0
 	+	18	0
-	+	19	0
+	+	23	0
 	+	2	5
 	+	3	7
 	+	4	10
@@ -363,6 +353,23 @@ $\1
 	+	16	4
 	+	17	2
 	+	18	2
+	+	19	4
+	+	22	12
+	+	20	0
+	+	21	0
+	+	22	6
+	+	21	4
+	+	20	6
+	+	23	0
+
+> ~/.gitignore_global
+	"	3	0
+	^	3	0
+	.	3	0
+	+	38	0
+	+	1	1
+	+	2	2
+	+	3	0
 
 > ~/.bash_export
 	"	204	25
