@@ -1,5 +1,30 @@
+###############################################
+# GIT global config file
+# 
+# lots of stuff found at 
+#    https://wincent.com/wiki/Git_quickstart
+###############################################
 [user]
 	email = tak@project68.com
 	name = Tak
 [core]
 	excludesfile = /Users/tak/.gitignore_global
+	legacyheaders = false
+	usedeltabaseoffset = true
+[log]
+	decorate = short
+[color]
+	ui = auto
+	interactive = auto
+[page]
+	status = true
+	show-branch = true
+[alias]
+	st = status
+	ci = commit
+	co = checkout
+	staged = diff --cached
+	oneline = log --oneline
+	amend = commit --amend
+[merge]
+	tool = opendiff

@@ -8,7 +8,7 @@
 # hlsearch on (H) or off (h):
 ~H
 # Last Search Pattern:
-~MSle0~/ant
+~MSle0~/vim
 
 # Last Substitute Search Pattern:
 ~MSle0&##  \(.*\)  ##
@@ -65,6 +65,7 @@ $\1
 :w!
 
 # Search String History (newest to oldest):
+?/vim
 ?/ant
 ?/ssh
 ?/yahoo
@@ -164,7 +165,6 @@ $\1
 ?/internal
 ?/intnerl
 ?/isInt
-?/cachehost
 
 # Expression History (newest to oldest):
 
@@ -174,8 +174,8 @@ $\1
 
 # Registers:
 "0	LINE	0
-	path="$path /usr/local/ant/bin"
-""1	LINE	0
+	###############################################
+"1	LINE	0
 	
 "2	LINE	0
 	#   .projects.ede
@@ -193,23 +193,27 @@ $\1
 	        <link type="text/css" rel="stylesheet" href="http://yui.yahooapis.com/2.8.1/build/treeview/assets/skins/sam/treeview.css">
 "9	LINE	0
 	 
-"-	CHAR	0
+""-	CHAR	0
 	/
 
 # File marks:
-'0  22  0  ~/.gitignore
-'1  19  4  ~/.gitignore
-'2  3  0  ~/.gitignore_global
-'3  18  2  ~/.gitignore
-'4  1  0  ~/.gitignore_global
-'5  204  25  ~/.bash_export
-'6  1  35  ~/s/transcode.sh
-'7  104  27  ~/.bash_aliases
-'8  31  0  ~/.bashrc
-'9  8  0  ~/dev/yahoo/ymail/openmail/trunk/apps/samples/ydn/memories/views/main
+'0  22  7  ~/.gitignore
+'1  24  7  ~/.gitignore
+'2  6  4  ~/.gitconfig
+'3  1  0  ~/.gitconfig
+'4  23  0  ~/.gitignore
+'5  19  4  ~/.gitignore
+'6  3  0  ~/.gitignore_global
+'7  18  2  ~/.gitignore
+'8  1  0  ~/.gitignore_global
+'9  204  25  ~/.bash_export
 
 # Jumplist (newest first):
--'  22  0  ~/.gitignore
+-'  22  7  ~/.gitignore
+-'  24  0  ~/.gitignore
+-'  23  0  ~/.gitignore
+-'  6  4  ~/.gitconfig
+-'  1  0  ~/.gitconfig
 -'  19  0  ~/.gitignore
 -'  18  0  ~/.gitignore
 -'  3  0  ~/.gitignore_global
@@ -304,19 +308,16 @@ $\1
 -'  4  54  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/config.xml
 -'  3  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/config.xml
 -'  1  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/config.xml
--'  30  21  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/views/full.html
--'  1  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_lightbox_visible/views/full.html
--'  3  51  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_visible/config.xml
--'  1  0  ~/dev/yahoo/ymail/openmail/trunk/apps/test/test_msgread_activehack_openview_visible/config.xml
 
 # Buffer list:
-%~/.gitignore	22	0
+%~/.gitignore	22	7
 
 # History of marks within files (newest to oldest):
 
 > ~/.gitignore
-	"	22	0
-	.	23	0
+	"	22	7
+	^	22	8
+	.	22	7
 	+	18	8
 	+	1	0
 	+	2	0
@@ -336,7 +337,7 @@ $\1
 	+	16	0
 	+	17	0
 	+	18	0
-	+	23	0
+	+	26	0
 	+	2	5
 	+	3	7
 	+	4	10
@@ -354,13 +355,28 @@ $\1
 	+	17	2
 	+	18	2
 	+	19	4
-	+	22	12
+	+	23	12
 	+	20	0
 	+	21	0
-	+	22	6
+	+	23	6
 	+	21	4
 	+	20	6
-	+	23	0
+	+	26	0
+	+	25	4
+	+	24	0
+	+	25	0
+	+	24	7
+	+	22	7
+
+> ~/.gitconfig
+	"	6	4
+	^	5	5
+	.	5	4
+	+	1	46
+	+	2	23
+	+	6	0
+	+	4	24
+	+	5	4
 
 > ~/.gitignore_global
 	"	3	0
@@ -688,9 +704,3 @@ $\1
 	^	5	8
 	.	5	7
 	+	5	7
-
-> ~/dev/yahoo/ymail/openmail_trunk/trunk/scripts/setup_backend_symlinks.sh
-	"	33	42
-	.	29	42
-	+	27	40
-	+	29	42
