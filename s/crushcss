@@ -1,0 +1,32 @@
+#!/usr/bin/perl
+
+# crushcss -- Quick n dirty CSS file size optimizer
+# dbalmer 03-17-2005
+
+foreach $arg (@ARGV) {
+	# handle multi-files and optional wildcards (e.g. *.css)
+	foreach $filename (glob($arg)) {
+		# slurp in our file
+		$/ = undef;
+		open FILE, "<$filename";
+		$file = <FILE>;
+		close FILE;
+
+		# the crusher
+		$file =~ s/\{\s*\n+/\{/g;
+		$file =~ s/\n+\s*\}/\}/g;
+		$file =~ s/\;\s*\n+/\;/g;
+		$file =~ s/\t+/ /g;
+		$file =~ s/\{\s+/\{/g;
+		$file =~ s/\s+\}/\}/g;
+		$file =~ s/\:\s+/\:/g;
+		$file =~ s/\n\n\n/\n\n/g;
+		#$file =~ s/\s+/ /g;
+	
+		# write it out
+		open FILE, ">$filename";
+		print FILE $file;
+		close FILE;
+	}
+}
+

@@ -1,0 +1,258 @@
+#  -*- shell-script -*-
+#######################################################
+# $Id: .bash_yahoo,v 1.36 2009/04/02 16:36:44 tak Exp $
+# yahoo alias
+#######################################################
+
+alias a=alias
+alias e=export
+
+#################################
+# Source Code management
+#################################
+e CVS_RSH="ssh"
+e SVN_SSH="yssh"
+e RSYNC_RSH="ssh"
+e SSH_ASKPASS="1"
+e CVSROOT="vault.yahoo.com:/CVSROOT"
+e SVNROOT="svn+ssh://tak@svn.corp.yahoo.com/yahoo"
+if [ -f "/usr/local/bin/yssh-find-agent" ]; then
+    e SSH_AUTH_SOCK=`/usr/local/bin/yssh-find-agent`
+fi
+
+#################################
+# yinst_completion hook
+# XXX: sucks, doesnt let you auto-complete on local package files
+#################################
+#if [ -f /usr/local/etc/bash_completion.d/yinst_completion ]; then
+#      . /usr/local/etc/bash_completion.d/yinst_completion
+#fi
+
+#################################
+# Yahoo specific path hacks
+#################################
+
+path=""
+path="$path /home/y/bin"
+path="$path /opt/zimbra/bin"
+
+###
+### only add stuff to path if it exists
+###
+for p in $path; do
+  if [ -d $p ]; then
+#    echo "PATH: $p added";
+    e PATH=$p:${PATH}
+  fi
+done
+unset path p
+
+#################################
+# Perforce (Zimbra)
+#################################
+#e P4ROOT="/home/p4root"
+#e P4PORT="1666"
+#e P4CLIENT="bussleptthese"
+#e P4CLIENTZIMBRA="khendrikson-tak" # convenience alias
+#e P4CLIENTYCAL="ycal"        # convenience alias
+#e P4CLIENTHTML="publichtml"  # convenience alias
+#e P4CLIENT=${P4CLIENTZIMBRA}
+#e P4CONFIG=".p4config-zimbra-rhel"
+e P4CONFIG=".p4config"
+
+#################################
+# Are we in a chroot/yroot?
+#################################
+if [ "x$YROOT_NAME" != "x" ]; then
+    prompt_yroot="${PCOLOR_RED}[ =>$YROOT_NAME<= ]${PCOLOR_OFF}"
+else
+    prompt_yroot=""
+fi
+
+#################################
+# Are we root?
+#################################
+e CORPNET=`/bin/hostname | grep corp.yahoo`
+if [ "x$CORPNET" != "x" ]; then
+    # do nothing
+    foo=bar
+else
+    # echo "not on CORPNET"
+    e UIDCOLOR=${PCOLOR_YELLOW}
+fi
+
+# Prepend the YROOT alert to the existing Prompt
+if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
+    e PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+then
+    e PS1="${prompt_yroot}${PS1}"
+fi
+
+#################################
+# CandyGram stuff
+#################################
+
+e ANT_HOME="/home/y/bin/ant"
+#e PYTHON_HOME="/usr/local/bin"
+e PYTHON_HOME="/home/y/bin"
+#e CATALINA_HOME="/home/y/etc/tomcat"
+a pookie='sudo mount -t nfs -o nodev,-3,-U laborclear:/home/tak/dev/yahoo /tmp/pookie'
+a shpants="cd ~/dev/yahoo/properties/ymail/dclient/src/site/intl/templates/generic_intl/all/css"
+a dclient="cd ~/dev/yahoo/ymail/dclient/trunk/src"
+a jscal="cd ~/dev/yahoo/properties/ymail/dclient/src/site/js"
+a selng="cd ~/dev/yahoo/selenium/SelNG/selng_projects/cg/trunk"
+a cgigor="yinst restore -igor -igor_tag mail.cg.app.dclient-dev.head"
+a neoigor="yinst restore -igor -igor_tag mail.neo.app.head; yinst set openmail_yfor_conf.config_url_host=laborclear-vm2.corp.yahoo.com; /home/y/bin/yfor_util -C -R"
+
+#################################
+# convenience exports
+#################################
+e YBR="-br current -br stable -br test -br nightly"
+e YWS_VERSION="-H 'x-ysws-version: 0.5'"
+
+#################################
+# Editor override
+#################################
+[ -f /home/y/bin/emacs ] && e EDITOR="/home/y/bin/emacs -q"
+
+#################################
+# Java path
+#################################
+jpath="/usr/local /home/y/libexec/java /home/y/libexec32/jdk1.4.2 /usr/local/java-1.5.0 /home/y/libexec/jdk1.5.0 /home/y/libexec/jdk1.6.0"
+for p in $jpath; do
+  if [ -e $p ]; then
+    #echo "PATH: $p added";
+    e JAVA_HOME=$p
+  fi
+done
+unset jpath p
+e JAVA_PATH="${JAVA_HOME}"
+
+
+#################################
+# convenience aliases
+#################################
+if [ -f "/usr/local/bin/yscp" ]; then
+    a scp=yscp
+fi
+if [ -f "/usr/local/bin/yssh" ]; then
+    a ssh=yssh
+fi
+#a ypackage="yinst packages -br test -br current -br stable \"*$1*\""
+
+# a build tag Im using as a stable snapshot
+e ELECTRO="PIM_BUILD_ELECTRO_2005_01_12"
+
+# Buildicus Option
+e PACKAGE_BUILDTYPE=link
+
+# helper aliases
+#a rl="tail -f /home/reminders/logs/r_send.log"
+a ylus="tail -f /home/y/logs/yapache/us/error"
+a yl="tail -f /home/y/logs/yapache/error"
+a rl="tail -f /home/y/logs/yapache/access | readlog -f 'date,time,r,url'"
+a yabyl="tail -f /home/y/logs/yapache/error"
+a yboot='yinst stop yapache; yinst start yapache'
+
+## dev box cd helpers
+a oms="cd ~/dev/yahoo/ymail/openmail/trunk"
+a pim="cd ~/dev/yahoo/properties/pim"
+a cal2="cd ~/dev/yahoo/properties/cal2"
+a cal3="cd ~/dev/yahoo/properties/cal3"
+a ab3="cd ~/dev/yahoo/properties/pim3/ab/php"
+a us="cd /home/y/share/ycal/main/php/us"
+a tus="cd ${OSPREY_CVSROOT}/php/rosetta/templates/generic_intl/all"
+a tpear="cd ${OSPREY_CVSROOT}/php/pear"
+a tcssjs="cd ${OSPREY_CVSROOT}/php"
+a cssjs="cd /home/y/share/ycal/lib_web"
+a me="cd /home/pim/001/data/4e/24/32/y.mtakacs"
+a r="cd /home/repl/lib"
+#a zs="cd /Volumes/zimbra.vmnet.yahoo.com/FRANKLIN/YahooCalendar/Server"
+#a zw="cd /Volumes/zimbra.vmnet.yahoo.com/FRANKLIN/YahooCalendar/WebClient"
+#a zt="cd /Volumes/zimbra.vmnet.yahoo.com/FRANKLIN/ZimbraTagLib"
+#a zc="cd /Volumes/zimbra.vmnet.yahoo.com/FRANKLIN/ZimbraCommon"
+a zs="cd /home/zimbra/FRANKLIN/YahooCalendar/Server"
+a zw="cd /home/zimbra/FRANKLIN/YahooCalendar/WebClient"
+a zt="cd /home/zimbra/FRANKLIN/ZimbraTagLib"
+a zc="cd /home/zimbra/FRANKLIN/YahooCalendar/Common"
+a bs="cd /home/zimbra-branch/FRANKLIN-YCC-B2D1/YahooCalendar/Server"
+a bw="cd /home/zimbra-branch/FRANKLIN-YCC-B2D1/YahooCalendar/WebClient"
+a bt="cd /home/zimbra-branch/FRANKLIN-YCC-B2D1/ZimbraTagLib"
+a bc="cd /home/zimbra-branch/FRANKLIN-YCC-B2D1/ZimbraCommon"
+a zl="tail -f /opt/zimbra/log/jetty.out"
+
+a ycal="cd ~/dev/yahoo/properties/ycal/client"
+a l10n="cd ~/dev/yahoo/properties/l10n_tools"
+a yde="cd ~/dev/yahoo/yde"
+# build foo
+a yahoo="sudo -u yahoo"
+
+a p4z='export P4CONFIG=".p4config-zimbra"'
+a p4mta='export P4CONFIG=".p4config-zimbra-tunnel"'
+a p4rhel='export P4CONFIG=".p4config-zimbra-rhel"'
+
+## goto diff places
+a lc='ssh -l tak laborclear.corp.yahoo.com'
+a lc0='ssh -l tak laborclear-vm0.corp.yahoo.com'
+a lc1='ssh -l tak laborclear-vm1.corp.yahoo.com'
+a lc2='ssh -l tak laborclear-vm2.corp.yahoo.com'
+a lc3='ssh -l tak laborclear-vm3.corp.yahoo.com'
+a lc4='ssh -l tak laborclear-vm4.corp.yahoo.com'
+a vm0='ssh -l tak laborclear-vm0.corp.yahoo.com'
+a vm1='ssh -l tak laborclear-vm1.corp.yahoo.com'
+a vm2='ssh -l tak laborclear-vm2.corp.yahoo.com'
+a vm3='ssh -l tak laborclear-vm3.corp.yahoo.com'
+a nbf0='ssh -l tak norbeginform-vm0.corp.yahoo.com'
+a nbf1='ssh -l tak norbeginform-vm1.corp.yahoo.com'
+a nbf2='ssh -l tak norbeginform-vm2.corp.yahoo.com'
+a nbf3='ssh -l tak norbeginform-vm3.corp.yahoo.com'
+a nbf4='ssh -l tak norbeginform-vm4.corp.yahoo.com'
+a calqa='ssh -l tak zim001.qa.cal.ac4.yahoo.com'
+a calbeta='ssh -l tak zim001.c001.cal.ac4.yahoo.com'
+
+#################################
+## Mobstor experiments
+#################################
+a mobstor.get="curl http://playground.yahoofs.com/$1"
+a mobstor.put="curl http://playground.yahoofs.com -H 'x-ysws-version: 0.5' -T $1"
+a mobstor.delete="curl http://playground.yahoofs.com/$1 -H 'x-ysws-version: 0.5' -X DELETE"
+
+#################################
+## Browser foo
+#################################
+a profManager="/Applications/Firefox.app/Contents/MacOS/firefox -profilemanager"
+
+#################################
+## Openmail Stuff
+#################################
+a msqlr='mysql -Dopenmail -uroot -p`sudo /home/y/bin/keydbgetkey mysqlroot`'
+a ombe='ssh -l tak laborclear-vm1.corp.yahoo.com'
+a omfe='ssh -l tak norbeginform-vm0.corp.yahoo.com'
+a neodev='ssh -l tak norbeginform-vm1.corp.yahoo.com'
+a om1='ssh -l tak om0001.mail.mud.yahoo.com'
+a om2='ssh -l tak om0002.mail.mud.yahoo.com'
+
+e YMDT_HOST="laborclear-vm1.corp.yahoo.com"
+
+#################################
+## CDPATH
+#################################
+e CDPATH=".:~"
+
+path=""
+path="$path ${HOME}/dev/yahoo/ymail/neo/"
+path="$path /home/y/share/htdocs/"
+
+###
+### only add stuff to path if it exists
+###
+for p in $path; do
+  if [ -d $p ]; then
+    # echo "CDPATH: $p added";
+    e CDPATH=${CDPATH}:$p
+  fi
+done
+unset path p
+
+
+#eof

@@ -1,0 +1,109 @@
+;;;; Emacs Bookmark Format Version 1 ;;;;
+;;; This format is meant to be slightly human-readable;
+;;; nevertheless, you probably don't want to edit it.
+;;; -*- End Of Bookmark File Format Version Stamp -*-
+(("dclient"
+  ((filename . "~/tak/dev/yahoo/ymail/dclient/src/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "57 Feb 19 12:41 ")
+   (position . 248)))
+ ("openmail"
+  ((filename . "~/tak/dev/yahoo/ymail/openmail/")
+   (front-context-string . ".buildpath\n  -rw")
+   (rear-context-string . "11 Mar 10 11:32 ")
+   (position . 242)))
+ ("ServerUtils.java"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/src/java/com/yahoo/calendar/client/util/ServerUtils.java")
+   (front-context-string . "package com.yaho")
+   (rear-context-string)
+   (position . 1)))
+ ("Json2Exception.java"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/Server/src/java/com/yahoo/calendar/cs/json2/Json2Exception.java")
+   (front-context-string . "package com.yaho")
+   (rear-context-string)
+   (position . 1)))
+ ("zmigrate"
+  ((filename . "~/tak/dev/yahoo/properties/calendar/zmigrate/")
+   (front-context-string . ".\n  drwxr-xr-x  ")
+   (rear-context-string . "96 Nov 13 10:47 ")
+   (position . 154)))
+ ("calservices"
+  ((filename . "~/tak/dev/yahoo/properties/calendar/calservices/")
+   (front-context-string . "CVS\n  -rwxr-xr-x")
+   (rear-context-string . "96 Oct 20 16:13 ")
+   (position . 256)))
+ ("YadlGetAdsTag.java"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/src/java/com/yahoo/calendar/client/taglib/tag/YadlGetAdsTag.java")
+   (front-context-string . "/**\n * Copyright")
+   (rear-context-string)
+   (position . 1)))
+ ("YCalURLFilter.java"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/src/java/com/yahoo/calendar/client/filter/YCalURLFilter.java")
+   (front-context-string . "/*\n * ***** BEGI")
+   (rear-context-string)
+   (position . 1)))
+ ("universalHeader.tag"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/web/tags/ycal/infra/universalHeader.tag")
+   (front-context-string . "<%@ tag body-con")
+   (rear-context-string)
+   (position . 1)))
+ ("FlickrCache.java"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/Server/src/java/com/yahoo/calendar/plugins/flickr/FlickrCache.java")
+   (front-context-string . "package com.yaho")
+   (rear-context-string)
+   (position . 1)))
+ ("view.tag"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/web/tags/ycal/infra/view.tag")
+   (front-context-string . "<%-- -*- nxml -*")
+   (rear-context-string)
+   (position . 1)))
+ ("eappt"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/web/handlers/eappt")
+   (front-context-string . "<%-- -*- nxml -*")
+   (rear-context-string)
+   (position . 1)))
+ ("flickr.js"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/web/js/flickr.js")
+   (front-context-string . "/**\n * Flickr Mo")
+   (rear-context-string)
+   (position . 1)))
+ ("yahoo_calendar.css"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/WebClient/web/css/generic/yahoo_calendar.css")
+   (front-context-string . "/* Start zbase *")
+   (rear-context-string)
+   (position . 1)))
+ ("Common"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/Common/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "47 Sep 17 19:37 ")
+   (position . 248)))
+ ("ZimbraWebClient"
+  ((filename . "~/tak/zimbra/FRANKLIN/ZimbraWebClient/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "61 Sep 10 13:52 ")
+   (position . 250)))
+ ("ZimbraTagLib"
+  ((filename . "~/tak/zimbra/FRANKLIN/ZimbraTagLib/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "58 Sep 10 13:52 ")
+   (position . 243)))
+ ("ZimbraCommon"
+  ((filename . "~/tak/zimbra/FRANKLIN/ZimbraCommon/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "31 Sep 10 13:51 ")
+   (position . 243)))
+ ("ZimbraBuild"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/ZimbraBuild/")
+   (front-context-string . ".project\n  -rw-r")
+   (rear-context-string . "04 Jun 26 16:33 ")
+   (position . 257)))
+ ("Server"
+  ((filename . "~/tak/zimbra/FRANKLIN/YahooCalendar/Server/")
+   (front-context-string . ".classpath\n  -rw")
+   (rear-context-string . "27 Sep 17 19:37 ")
+   (position . 255)))
+ ("WebRoot"
+  ((filename . "/Users/tak/tak/zimbra/FRANKLIN/YahooCalendar/WebClient")
+   (front-context-string . "WEB-INF\n  drwxr-")
+   (rear-context-string . "36 Nov 13 17:08 ")
+   (position . 276))))

@@ -1,0 +1,15 @@
+#  -*- shell-script -*-
+#######################################################
+## $Id: .bash_func,v 1.2 2008/02/15 22:10:56 tak Exp $
+## Tak Config
+#######################################################
+
+
+##
+## Mac Growl alert
+## As seen on http://damonparker.org/blog/2006/11/13/iterm-and-growl/
+##
+growl() {
+    echo -e $'\e]9;'${1}'\007';
+    return ;
+}

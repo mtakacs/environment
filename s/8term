@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/local/bin/screen -d -et -R -S term8 /usr/bin/ssh-agent /bin/bash
