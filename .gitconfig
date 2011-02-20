@@ -1,3 +1,5 @@
 [user]
 	email = tak@project68.com
 	name = Tak
+[core]
+	excludesfile = /Users/tak/.gitignore_global
