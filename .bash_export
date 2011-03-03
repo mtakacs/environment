@@ -202,6 +202,7 @@ path="$path /usr/local/openldap/bin"
 path="$path /usr/local/mysql/bin"
 path="$path /usr/local/ant/bin"
 path="$path /usr/local/git/bin"
+path="$path /Applications/Mkvtoolnix.app/Contents/macOS"
 path="$path ."
 
 ###
