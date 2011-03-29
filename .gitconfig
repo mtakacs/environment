@@ -28,3 +28,6 @@
 	amend = commit --amend
 [merge]
 	tool = opendiff
+[github]
+	user = mtakacs
+	token = 5b253a2d988faf8a9958fa24e739b35
