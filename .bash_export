@@ -148,6 +148,7 @@ e EDITOR=vi
 
 #################################
 # JAVA HOME
+# Usually better to let this get set on it's own or in .bash_hostname
 #################################
 
 #e JAVA_HOME="/usr/java/jdk1.3.1"
@@ -155,15 +156,18 @@ e EDITOR=vi
 #e JAVA_HOME="/usr/local/jdk1.5.0_01"
 #e JAVA_HOME="/usr/local"
 
-jpath="/usr/local /usr/local/java-1.5.0 /home/y/libexec/jdk1.5.0"
-for p in $jpath; do
-  if [ -e $p ]; then
-#    echo "PATH: $p added";
-    e JAVA_HOME=$p
-  fi
-done
-unset jpath p
-e JAVA_PATH="${JAVA_HOME}"
+#jpath="/usr/local/java-1.5.0 /home/y/libexec/jdk1.5.0 /usr /usr/local"
+#for p in $jpath; do
+#  if [ -e $p ]; then
+#    #echo "PATH: $p added";
+#    if [ -e $p/bin/java ]; then
+#        #echo "PATH: java found at $p";
+#        e JAVA_HOME=$p
+#    fi
+#  fi
+#done
+#unset jpath p
+#e JAVA_PATH="${JAVA_HOME}"
 
 #################################
 # LDAP
