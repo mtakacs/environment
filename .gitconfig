@@ -21,6 +21,7 @@
 	show-branch = true
 [alias]
 	st = status
+	stat = status -s
 	ci = commit
 	co = checkout
 	staged = diff --cached

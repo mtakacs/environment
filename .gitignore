@@ -1,9 +1,27 @@
+#######################################################
+# GIT-IGNORE
+#######################################################
+
 .CFUserTextEncoding
+.MacOSX
 .Trash
+.android
+.bash_history
+.config
+.cups
 .dropbox
 .fontconfig
-.ssh-agent
+.grails
+.ivy2
+.lesshst
+.local
+.mysql_history
 .ssh
+.ssh-agent
+.subversion_IDEA
+.viminfo
+.xinitrc.old
+Android
 Desktop
 Documents
 Downloads
@@ -17,9 +35,5 @@ Sites
 bin
 dev
 xfers
-.MacOSX
-.cups
-.viminfo
-Android
-.android
-.bash_history
+
+# EOF
