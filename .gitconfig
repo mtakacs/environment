@@ -27,6 +27,7 @@
 	staged = diff --cached
 	oneline = log --oneline
 	amend = commit --amend
+    branches = branch -a
 [merge]
 	tool = opendiff
 [github]
