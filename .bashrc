@@ -30,6 +30,7 @@ else
    [ -f $HOME/.bash_misc ] && source $HOME/.bash_misc
 #   [ -f $HOME/.bash_yahoo ] && source $HOME/.bash_yahoo
    [ -f $HOME/.bash_func ] && source $HOME/.bash_func
+   [ -f $HOME/.bash_func_grails ] && source $HOME/.bash_func_grails
 fi
 
 
