@@ -152,6 +152,12 @@ e EDITOR=vi
 e GRAILS_HOME="/usr/local/grails"
 
 #################################
+# GRADLE HOME
+#################################
+
+e GRADLE_HOME="/usr/local/gradle"
+
+#################################
 # JAVA HOME
 # Usually better to let this get set on it's own or in .bash_hostname
 #################################
@@ -207,6 +213,7 @@ path="$path /opt/subversion/bin"
 path="$path ${ANT_HOME}/bin"
 path="$path ${JAVA_HOME}/bin"
 path="$path ${GRAILS_HOME}/bin"
+path="$path ${GRADLE_HOME}/bin"
 path="$path /usr/local/perl/bin"
 path="$path /usr/local/bdb/bin"
 path="$path /usr/local/openldap/bin"
