@@ -16,6 +16,7 @@
 .ivy2
 .lesshst
 .local
+.mkvtoolnix
 .mysql_history
 .ssh
 .ssh-agent
