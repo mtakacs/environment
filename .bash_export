@@ -146,16 +146,13 @@ e EDITOR=vi
 #e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/lib"
 
 #################################
-# GRAILS HOME
+# GRAILS, GROOVY, GRADLE HOME
 #################################
 
 e GRAILS_HOME="/usr/local/grails"
-
-#################################
-# GRADLE HOME
-#################################
-
 e GRADLE_HOME="/usr/local/gradle"
+e GROOVY_HOME="/usr/local/groovy"
+e MAVEN_HOME="/usr/local/maven"
 
 #################################
 # JAVA HOME
@@ -213,7 +210,9 @@ path="$path /opt/subversion/bin"
 path="$path ${ANT_HOME}/bin"
 path="$path ${JAVA_HOME}/bin"
 path="$path ${GRAILS_HOME}/bin"
+path="$path ${GROOVY_HOME}/bin"
 path="$path ${GRADLE_HOME}/bin"
+path="$path ${MAVEN_HOME}/bin"
 path="$path /usr/local/perl/bin"
 path="$path /usr/local/bdb/bin"
 path="$path /usr/local/openldap/bin"
