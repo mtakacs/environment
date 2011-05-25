@@ -4,6 +4,9 @@
 # yahoo alias
 #######################################################
 
+## pull in defaults from /home/y
+[ -f /home/y/etc/yvm.bashrc ] && source /home/y/etc/yvm.bashrc
+
 alias a=alias
 alias e=export
 

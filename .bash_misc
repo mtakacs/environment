@@ -4,10 +4,6 @@
 # User specific functions, scripts, settings
 
 #################################
-# Adjust the history settings
-#################################
-
-#################################
 # If you are a developer, uncomment the following to make sure core
 # dumps will be generated when they should be
 #################################
@@ -19,33 +15,42 @@ ulimit -c unlimited
 shopt -s cdspell
 
 #################################
-# Save multi-line commands in history as single line
+# History: Save multi-line commands in history as single line
 #################################
 shopt -s cmdhist
 
 #################################
-# Do not delete your precious history file before writing the new one
+# History: Do not delete your precious history file before writing the new one
 #################################
 shopt -s histappend
 
 #################################
-# This is useful for embedded newlines in commands and quoted arguments
+# History: If enabled, and the cmdhist option is enabled, multi-line commands
+# are saved to the history with embedded newlines rather than using semicolon
+# separators where possible
 #################################
 shopt -s lithist
 
 #################################
-# Enable egrep-style pattern matching
+# shell: Enable egrep-style pattern matching
 #################################
 shopt -s extglob
 
 #################################
-# This option mostly keeps you from needing to run "hash -r" when you
+# shell: This option mostly keeps you from needing to run "hash -r" when you
 # modify directories in your path
 #################################
 shopt -s checkhash
 
 #################################
-# Set umask
+# shell: check the window size after each command and, if necessary, update
+# the values of LINES and COLUMNS.
+#################################
+shopt -s checkwinsize
+
+
+#################################
+# shell: Set umask
 #################################
 #umask 0023
 
