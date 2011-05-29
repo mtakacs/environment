@@ -27,7 +27,10 @@
 	staged = diff --cached
 	oneline = log --oneline
 	amend = commit --amend
-    branches = branch -a
+	branches = branch -av
+	unstage = reset HEAD --
+	last = log -1 HEAD
+	dirty = branch --no-merged
 [merge]
 	tool = opendiff
 [github]
