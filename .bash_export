@@ -223,6 +223,9 @@ e GRADLE_HOME="/usr/local/gradle"
 e GROOVY_HOME="/usr/local/groovy"
 e MAVEN_HOME="/usr/local/maven"
 
+#e CATALINA_HOME="/usr/local/apache-tomcat-6.0.32"
+[ -e /usr/local/tomcat6 ] && e CATALINA_HOME="/usr/local/tomcat6"
+
 #################################
 # JAVA HOME
 # Usually better to let this get set on it's own or in .bash_hostname
