@@ -1,0 +1,24 @@
+#  -*- shell-script -*-
+#######################################################
+#######################################################
+
+alias a=alias
+alias e=export
+
+#################################
+# exports
+#################################
+
+e AWS1="ec2-50-18-80-157.us-west-1.compute.amazonaws.com"
+e AWS2="ec2-50-18-68-122.us-west-1.compute.amazonaws.com"
+
+#################################
+# convenience destinations
+#################################
+
+a bushel='ssh -l root bushel'
+a aws1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-50-18-80-157.us-west-1.compute.amazonaws.com'
+a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-50-18-68-122.us-west-1.compute.amazonaws.com'
+
+
+#eof
