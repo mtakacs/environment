@@ -9,8 +9,10 @@ alias e=export
 # exports
 #################################
 
-e AWS1="ec2-50-18-80-157.us-west-1.compute.amazonaws.com"
-e AWS2="ec2-50-18-68-122.us-west-1.compute.amazonaws.com"
+#e AWS1="ec2-50-18-80-157.us-west-1.compute.amazonaws.com"
+#e AWS2="ec2-50-18-68-122.us-west-1.compute.amazonaws.com
+e AWS1="50.18.127.91"
+e AWS2="50.18.127.111"
 
 #################################
 # convenience destinations
