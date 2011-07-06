@@ -19,6 +19,7 @@ e AWS2="50.18.127.111"
 #################################
 
 a bushel='ssh -l root bushel'
+a blog='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.123.151' 
 a aws1='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.91'
 a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.111'
 
