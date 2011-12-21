@@ -10,7 +10,7 @@
 # implied warranty.
 #
 # Given a YouTube or Vimeo URL, downloads the corresponding MP4 file.
-# The name of the file will be the <TITLE> of the HTML page.
+# The name of the file will be derived from the title of the video.
 #
 #  --title "STRING"  Use this as the title instead.
 #  --suffix          Append the video ID to each written file name.
@@ -42,7 +42,7 @@ use strict;
 use Socket;
 
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.65 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.98 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
 
 my $verbose = 1;
 my $append_suffix_p = 0;
@@ -50,6 +50,8 @@ my $append_suffix_p = 0;
 my $http_proxy = undef;
 
 $ENV{PATH} = "/opt/local/bin:$ENV{PATH}";   # for macports mplayer
+
+my @video_extensions = ("mp4", "flv", "webm");
 
 
 sub de_entify($) {
@@ -250,12 +252,12 @@ sub get_url($;$$$$) {
         $url = $location;
 
         if ($url =~ m@^/@) {
-          $referer =~ m@^(http://[^/]+)@i;
+          $referer =~ m@^(https?://[^/]+)@i;
           $url = $1 . $url;
         } elsif (! ($url =~ m@^[a-z]+:@i)) {
           $_ = $referer;
-          s@[^/]+$@@g if m@^http://[^/]+/@i;
-          $_ .= "/" if m@^http://[^/]+$@i;
+          s@[^/]+$@@g if m@^https?://[^/]+/@i;
+          $_ .= "/" if m@^https?://[^/]+$@i;
           $url = $_ . $url;
         }
 
@@ -283,6 +285,7 @@ sub check_http_status($$$) {
 
 
 # Runs mplayer and/or ffmpeg to determine dimensions of the given video file.
+# (We only do this if the metadata didn't include width and height).
 #
 sub video_file_size($) {
   my ($file) = @_;
@@ -296,7 +299,7 @@ sub video_file_size($) {
 
   $cmd = "$limit; $cmd";
   $cmd .= ' </dev/null';
-  if ($verbose > 2) {
+  if ($verbose > 3) {
     $cmd .= ' 2>&1';
   } else {
     $cmd .= ' 2>/dev/null';
@@ -304,7 +307,7 @@ sub video_file_size($) {
 
   print STDERR "\n$progname: exec: $cmd\n" if ($verbose > 2);
   my $result = `$cmd`;
-  print STDERR "\n$result\n" if ($verbose > 2);
+  print STDERR "\n$result\n" if ($verbose > 3);
 
   my ($w, $h) = (0, 0);
   if ($result =~ m/^VO:.*=> (\d+)x(\d+) /m) {
@@ -316,12 +319,13 @@ sub video_file_size($) {
   #
   if (!$w) {
     $cmd = "ffmpeg -i \"$file\" -vframes 0 -f null /dev/null </dev/null 2>&1";
-    print STDERR "\n$progname: exec: $cmd\n" if ($verbose > 2);
+    print STDERR "\n$progname: mplayer failed to find dimensions." .
+		 "\n$progname: exec: $cmd\n" if ($verbose > 2);
     $cmd = "$limit; $cmd";
     my $result = `$cmd`;
-    print STDERR "\n$result\n" if ($verbose > 2);
+    print STDERR "\n$result\n" if ($verbose > 3);
 
-    if ($result =~ m/^\s*Stream #.* Video:.* (\d+)x(\d+) /m) {
+    if ($result =~ m/^\s*Stream #.* Video:.* (\d+)x(\d+),? /m) {
       ($w, $h) = ($1, $2);
     }
   }
@@ -342,7 +346,7 @@ sub video_url_size($$$) {
                       rand(0xFFFFFFFF));
   unlink $file;
 
-  my $bytes = 200 * 1024;	   # 200 KB seems to be enough for 1280x760
+  my $bytes = 380 * 1024;	   # Need a lot of data to get size from HD
 
   my ($http, $head, $body) = get_url ($url, undef, 0, $file, $bytes);
   check_http_status ($url, $http, 1);
@@ -435,8 +439,8 @@ sub cgi_output($$$$$$$) {
 # - width and height, if known
 # - size in bytes, if known
 #
-sub scrape_youtube_url($$) {
-  my ($url, $id) = @_;
+sub scrape_youtube_url($$$$$) {
+  my ($url, $id, $title, $size_p, $force_fmt) = @_;
 
   my $info_url = ("http://www.youtube.com/get_video_info?video_id=$id" .
                   "&el=vevo");	# Needed for VEVO, works on non-VEVO.
@@ -444,8 +448,14 @@ sub scrape_youtube_url($$) {
   my ($http, $head, $body) = get_url ($info_url);
   check_http_status ($url, $http, 1);
 
-  my ($urlmap) = ($body =~ m@&fmt_url_map=([^&]+)@si);
-  ($urlmap) = ($body =~ m@&fmt_stream_map=([^&]+)@si) unless $urlmap; # VEVO
+  my ($kind, $urlmap) = ($body =~ m@&(fmt_url_map)=([^&]+)@si);
+  ($kind, $urlmap) = ($body =~ m@&(fmt_stream_map)=([^&]+)@si)	    # VEVO
+    unless $urlmap;
+  ($kind, $urlmap) = ($body =~ m@&(url_encoded_fmt_stream_map)=([^&]+)@si) 
+    unless $urlmap;			   # New nonsense seen in Aug 2011
+  print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
+
+  my ($fmtlist) = ($body =~ m@&fmt_list=([^&]+)@si);
 
   if (! $urlmap) {
     # If we couldn't get a URL map out of the info URL, try harder.
@@ -454,35 +464,41 @@ sub scrape_youtube_url($$) {
       error ("$progname: $id: private video");
     }
 
-    if ($verbose > 1) {
-      if ($body =~ m/Embedding[+\s]disabled/si) {
-        print STDERR "$progname: $id: embedding disabled, scraping HTML...\n";
-      } else {
-        print STDERR "$progname: $id: no fmt_url_map, scraping HTML...\n";
-      }
+    my ($err) = ($body =~ m@reason=([^&]+)@s);
+    $err = '' unless $err;
+    if ($err) {
+      $err = url_unquote($err);
+      $err =~ s/^\s+|\s+$//s;
+      $err = " (\"$err\")";
     }
-    return scrape_youtube_url_noembed ($url, $id);
+
+    print STDERR "$progname: $id: no fmt_url_map$err.  Scraping HTML...\n"
+      if ($verbose > 1);
+
+    return scrape_youtube_url_noembed ($url, $id, $size_p, $force_fmt);
   }
 
-  $urlmap = url_unquote ($urlmap);
+  $urlmap  = url_unquote ($urlmap);
+  $fmtlist = url_unquote ($fmtlist || '');
 
-  my ($title) = ($body =~ m@&title=([^&]+)@si);
+  ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
   error ("no title in $info_url") unless $title;
   $title = url_unquote($title);
 
-  return scrape_youtube_url_2 ($id, $urlmap, $title);
+  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $title,
+                               $size_p, $force_fmt);
 }
 
 
 # This version parses the HTML, since the video_info page is unavailable
 # for "embedding disabled" videos.
 #
-sub scrape_youtube_url_noembed($$) {
-  my ($url, $id) = @_;
+sub scrape_youtube_url_noembed($$$$) {
+  my ($url, $id, $size_p, $force_fmt) = @_;
 
   my ($http, $head, $body) = get_url ($url);
-  check_http_status ($url, $http, 1);
 
+  my $unquote_p = 1;
   my ($args) = ($body =~ m@'SWF_ARGS' *: *{(.*?)}@s);
 
   if (! $args) {    # Sigh, new way as of Apr 2010...
@@ -492,47 +508,119 @@ sub scrape_youtube_url_noembed($$) {
     ($args) = ($args =~ m@fmt_url_map=([^&]+)@si) if $args;
     $args = "\"fmt_url_map\": \"$args\"" if $args;
   }
-
-  if (! $args) {
-    error ("$id: $1") 
-      if ($body =~ m@<div\s+id="error-box"[^<>]*>\s*([^<>]+?)\s*</div>@si);
-    error ("$id: $1") 
-      if ($body =~ 
-          m@<div[^<>]*class="yt-alert-content"[^<>]*>\s*([^<>]+?)\s*</div>@si);
-    error ("$id: no SWF_ARGS in $url");
+  if (! $args) {    # Sigh, new way as of Aug 2011...
+    ($args) = ($body =~ m@'PLAYER_CONFIG':\s*{(.*?)}@s);
+    $args =~ s@\\u0026@&@gs if $args;
+    $unquote_p = 0;
   }
 
-  my ($urlmap) = ($args =~ m@"fmt_url_map": "(.*?)"@s);
-  ($urlmap) = ($args =~ m@"fmt_stream_map": "(.*?)"@s) unless $urlmap; # VEVO
+  error ("$id: $1") 
+    if (!$args &&
+        $body =~ m@<div \s+ (?: id | class ) = 
+                   "( ?: error-box |
+			 yt-alert-content |
+			 unavailable-message )"
+                   [^<>]* > \s* 
+                   ( [^<>]+? ) \s*
+                   </div>@six);
 
+  # Check this late, so that we get better error messages, above:
+  # Youtube returns HTTP 404 pages that have real messages in them.
+  check_http_status ($url, $http, 1);
+
+  error ("$id: no SWF_ARGS in $url") unless $args;
+
+  my ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": "(.*?)"@s);
+  ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": "(.*?)"@s)	    # VEVO
+    unless $urlmap;
+  ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": "(.*?)"@s)
+    unless $urlmap;			   # New nonsense seen in Aug 2011
   error ("$id: no fmt_url_map in $url") unless $urlmap;
+  print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
 
-  $urlmap = url_unquote($urlmap);
+  my ($fmtlist) = ($args =~ m@"fmt_list": "(.*?)"@s);
+  $fmtlist =~ s/\\//g if $fmtlist;
+
+  if ($unquote_p) {
+    $urlmap = url_unquote($urlmap);
+    $fmtlist = url_unquote ($fmtlist || '');
+  }
 
   my ($title) = ($body =~ m@<title>\s*(.*?)\s*</title>@si);
   $title = munge_title (url_unquote ($title));
 
-  return scrape_youtube_url_2 ($id, $urlmap, $title);
+  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $title,
+                               $size_p, $force_fmt);
 }
 
 
 # Parses the given fmt_url_map to determine the preferred URL of the
 # underlying Youtube video.
 #
-sub scrape_youtube_url_2($$$) {
-  my ($id, $urlmap, $title) = @_;
+sub scrape_youtube_url_2($$$$$$$) {
+  my ($id, $urlmap, $fmtlist, $title, $size_p, $force_fmt) = @_;
+
+  print STDERR "\n$progname: urlmap:\n" if ($verbose > 3);
 
   my $url;
   my %urlmap;
+  my %urlct;
   my @urlmap;
-  foreach (split /,/, $urlmap) {
-    my ($k, $v) = m/^(.*?)\|(.*)$/s;
-    $urlmap{$k} = $v;
-    push @urlmap, $k;
+  my %fmtsizes;
+
+  foreach (split /,/, $fmtlist) {
+    my ($fmt, $size, $a, $b, $c) = split(/\//);  # What are A, B, and C?
+    $fmtsizes{$fmt} = $size;
   }
 
+  foreach (split /,/, $urlmap) {
+    # Format used to be: "N|url,N|url,N|url"
+    # Now it is: "url=...&quality=hd720&fallback_host=...&type=...&itag=N"
+    my ($k, $v, $e);
+    if (m/^\d+\|/s) {
+      ($k, $v) = m/^(.*?)\|(.*)$/s;
+    } elsif (m/^[a-z_]+=/s) {
+      ($k) = m/\bitag=(\d+)/s;
+      ($v) = m/\burl=([^&]+)/s;
+      $v = url_unquote($v) if ($v);
+
+      my ($q) = m/\bquality=([^&]+)/s;
+      my ($t) = m/\btype=([^&]+)/s;
+      $e = "\t$q, $t" if ($q && $t);
+      $e = url_unquote($e) if ($e);
+    }
+
+    error ("$id: unparsable urlmap entry: $_") unless ($k && $v);
+
+    my ($ct) = ($e =~ m@\bvideo/(?:x-)?([a-z\d]+)\b@si);
+
+    my $s = $fmtsizes{$k};
+    $s = '?x?' unless $s;
+
+    $urlmap{$k} = $v;
+    $urlct{$k} = $ct;
+    push @urlmap, $k;
+    print STDERR "\t\t$k $s\t$v$e\n" if ($verbose > 3);
+  }
+
+  print STDERR "\n" if ($verbose > 3);
+
+  if (defined($force_fmt) && $force_fmt eq 'all') {
+    foreach my $fmt (sort { $a <=> $b } @urlmap) {
+      my $url = "http://www.youtube.com/v/$id";
+      my $x = $fmt . "/" . $urlct{$fmt};
+      $append_suffix_p = $x;
+      download_video_url ($url, $title, 
+                          ($size_p ? $append_suffix_p : 0),
+                          0, $fmt);
+    }
+    exit (0);
+  }
+
+  #
   # fmt    video codec           video size               audio codec
   # --- -------------------  -------------------  ---------------------------
+  #
   #  0  FLV h.263  251 Kbps  320x180  29.896 fps  MP3  64 Kbps  1ch 22.05 KHz
   #  5  FLV h.263  251 Kbps  320x180  29.896 fps  MP3  64 Kbps  1ch 22.05 KHz
   #  5* FLV h.263  251 Kbps  320x240  29.896 fps  MP3  64 Kbps  1ch 22.05 KHz
@@ -546,21 +634,75 @@ sub scrape_youtube_url_2($$$) {
   # 34* FLV h.264  593 Kbps  320x240  25.000 fps  AAC  52 Kbps  2ch 22.05 KHz
   # 34* FLV h.264  593 Kbps  640x360  30.000 fps  AAC  52 Kbps  2ch 22.05 KHz
   # 35  FLV h.264  831 Kbps  640x360  29.942 fps  AAC 107 Kbps  2ch 44.10 KHz
+  # 35* FLV h.264 1185 Kbps  854x480  30.000 fps  AAC 107 Kbps  2ch 44.10 KHz
   # 37  MP4 h.264 3653 Kbps 1920x1080 29.970 fps  AAC 128 Kbps  2ch 44.10 KHz
   # 38  MP4 h.264 6559 Kbps 4096x2304 23.980 fps  AAC 128 Kbps  2ch 48.00 KHz
+  # 43  WebM vp8   481 Kbps  480x360  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
+  # 44  WebM vp8   756 Kbps  640x480  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
+  # 45  WebM vp8  2124 Kbps 1280x720  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
+  # 46  WebM vp8  4676 Kbps 1920x540 stereo wide  Vorbis ?Kbps  2ch 44.10 KHz
+  # 82  MP4 h.264  926 Kbps  640x360 stereo       AAC 128 Kbps  2ch 44.10 KHz
+  # 83  MP4 h.264  934 Kbps  854x240 stereo       AAC 128 Kbps  2ch 44.10 KHz
+  # 84  MP4 h.264 3190 Kbps 1280x720 stereo       AAC 198 Kbps  2ch 44.10 KHz
+  # 85  MP4 h.264 3862 Kbps 1920x520 stereo wide  AAC 198 Kbps  2ch 44.10 KHz
+  # 100 WebM vp8   357 Kbps  640x360 stereo       Vorbis ?Kbps  2ch 44.10 KHz
+  # 101 WebM vp8   870 Kbps  854x480 stereo       Vorbis ?Kbps  2ch 44.10 KHz
+  # 102 WebM vp8   864 Kbps 1280x720 stereo       Vorbis ?Kbps  2ch 44.10 KHz
   #
   # fmt=38/37/22 are only available if upload was that exact resolution.
   #
-  # fmt=34 used to always be worse than fmt=18, but more recent uploads seem
-  # to be better.  So we'll assume 34 is better than 18 from now on.
+  # For things uploaded in 2009 and earlier, fmt=18 was higher resolution
+  # than fmt=34.  But for things uploaded later, fmt=34 is higher resolution.
+  # This code assumes that 34 is the better of the two.
   #
-  # Sadly, as of Jun 2010, there still exist older videos (uploaded as
-  # recently as Nov 2008) where 18 is much better than 34.  Maybe we should
-  # take whichever one is first in the list instead?
+  # The WebM formats 43, 44 and 45 began showing up around Jul 2011.
+  # The MP4 versions are higher resolution (e.g. 37=1080p but 45=720p).
   #
-  my %known_formats = (0  => 1, 5  => 1, 6  => 1, 13 => 1, 17 => 1, 18 => 1,
-                       22 => 1, 34 => 1, 35 => 1, 37 => 1, 38 => 1 );
-  my @preferred_fmts = (38, 37, 22, 35, 34, 18);
+  # The stereo/3D formats 46, 82-84, 100-102 first spotted in Sep/Nov 2011.
+  #
+  # For debugging this stuff, use "--fmt N" to force downloading of a
+  # particular format or "--fmt all" to grab them all.
+  #
+  #
+  # Test cases and examples:
+  #
+  #   http://www.youtube.com/watch?v=wjzyv2Q_hdM
+  #   5-Aug-2011: 38=flv/1080p but 45=webm/720p
+  #   6-Aug-2011: 38 no longer offered
+  #
+  #   http://www.youtube.com/watch?v=ms1C5WeSocY
+  #   6-Aug-2011: embedding disabled, but get_video_info works
+  #
+  #   http://www.youtube.com/watch?v=g40K0dFi9Bo
+  #   10-Sep-2011: 3D, fmts 82 and 84
+  #
+  #   http://www.youtube.com/watch?v=KZaVq1tFC9I
+  #   14-Nov-2011: 3D, fmts 100 and 102.  This one has 2D images in most
+  #   formats but left/right images in the 3D formats.
+  #
+  #   http://www.youtube.com/watch?v=SlbpRviBVXA
+  #   15-Nov-2011: 3D, fmts 46, 83, 85, 101.  This one has left/right images
+  #   in all of the formats, even the 2D formats.
+  #
+  # The table on http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
+  # disagrees with the above to some extent.  Which is more accurate?
+  #
+
+  my %known_formats  = (   0 => 1,   5 => 1,   6 => 1, 13 => 1, 17 => 1,
+                          18 => 1,  22 => 1,  34 => 1, 35 => 1, 37 => 1,
+                          38 => 1,  43 => 1,  44 => 1, 45 => 1, 46 => 1,
+                          82 => 1,  83 => 1,  84 => 1,  85 => 1,
+                         100 => 1, 101 => 1, 102 => 1,
+                       );
+  my @preferred_fmts = ( 38,  # huge mp4
+                         37,  # 1080 mp4
+                         22,  #  720 flv
+                         45,  #  720 webm
+                         35,  #  480 flv
+                         44,  #  480 webm
+                         34,  #  360 flv, mostly
+                         18,  #  360 mp4, mostly
+                       );
   my $fmt;
   foreach my $k (@preferred_fmts) {
     $fmt = $k;
@@ -574,8 +716,16 @@ sub scrape_youtube_url_2($$$) {
     $url = $urlmap{$fmt};
   }
 
+  my $how = 'picked';
+  if (defined($force_fmt)) {
+    $how = 'forced';
+    $fmt = $force_fmt;
+    $url = $urlmap{$fmt};
+    error ("$id: fmt $fmt does not exist") unless $url;
+  }
+
   print STDERR "$progname: $id: available formats: " . 
-    join(', ', @urlmap) . "; picked $fmt.\n"
+    join(', ', @urlmap) . "; $how $fmt.\n"
       if ($verbose > 1);
 
 
@@ -593,6 +743,13 @@ sub scrape_youtube_url_2($$$) {
 
   $url =~ s@^.*?\|@@s;  # VEVO
 
+  my ($wh) = $fmtsizes{$fmt};
+  my ($w, $h) = ($wh =~ m/^(\d+)x(\d+)$/s) if $wh;
+  ($w, $h) = ();  # Turns out these are full of lies.
+
+  # We need to do a HEAD on the video URL to find its size in bytes,
+  # and the content-type for the file name.
+  #
   my ($http, $head, $body);
   ($http, $head, $body, $url) = get_url ($url, undef, 1);
   check_http_status ($url, $http, 1);
@@ -601,8 +758,7 @@ sub scrape_youtube_url_2($$$) {
 
   error ("couldn't find video for $url") unless $ct;
 
-  # If we knew width and height, we'd return those too, but we don't.
-  return ($ct, $url, $title, undef, undef, $size);
+  return ($ct, $url, $title, $w, $h, $size);
 }
 
 
@@ -615,7 +771,8 @@ sub scrape_youtube_url_2($$$) {
 sub scrape_vimeo_url($$) {
   my ($url, $id) = @_;
 
-  my $info_url = "http://www.vimeo.com/moogaloop/load/clip:$id";
+  my $info_url = "http://vimeo.com/moogaloop/load/clip:$id";
+# my $info_url = "http://vimeo.com/api/v2/video/$id.xml";
   my ($http, $head, $body) = get_url ($info_url);
   check_http_status ($url, $http, 1);
 
@@ -627,12 +784,14 @@ sub scrape_vimeo_url($$) {
   my ($exp) = ($body =~ m@<request_signature_expires>([^<>]+)</@si);
   error ("$id: no expiration in $info_url") unless ($exp);
 
-  my ($w) = ($body =~ m@<width>(\d+)</@si);
-  my ($h) = ($body =~ m@<height>(\d+)</@si);
+  my ($w)     = ($body =~ m@<width>(\d+)</@si);
+  my ($h)     = ($body =~ m@<height>(\d+)</@si);
+  my ($hd)    = ($body =~ m@<isHD>([^<>]+)</@si);
   my ($title) = ($body =~ m@<caption>([^<>]+)</@si);
   $title = de_entify ($title) if $title;
+  $hd = ($hd ? 'hd' : 'sd');
 
-  $url = "http://www.vimeo.com/moogaloop/play/clip:$id/$sig/$exp/?q=hd";
+  $url = "http://vimeo.com/moogaloop/play/clip:$id/$sig/$exp/?q=$hd";
 
   my ($ct, $size);
   ($http, $head, $body) = get_url ($url, undef, 1);
@@ -659,22 +818,30 @@ sub munge_title($) {
   my ($title) = @_;
   $title =~ s/\s+/ /gsi;
   $title =~ s/^Youtube - //si;
+  $title =~ s/- Youtube$//si;
   $title =~ s/ on Vimeo\s*$//si;
   $title = '' if ($title eq 'Broadcast Yourself.');
   $title =~ s@: @ - @sg;    # colons, slashes not allowed.
   $title =~ s@[:/]@ @sg;
   $title =~ s@\s+$@@gs;
+  $title =~ s@&[^;]+;@@sg; # just lose entities
 
   # Do some simple rewrites / clean-ups to dumb things people do.
   $title =~ s/\s*[[(].*?\b(video|hd|hq)[])]\s*$//gsi; # yes I know it's a video
+  $title =~ s@\[audio\]@ @gsi;
   $title =~ s/(official\s*)?(music\s*)?video\b//gsi;
   $title =~ s/[-:\s]*SXSW[\d ]*Showcasing Artist\b//gsi;
+  $title =~ s/^.*\bPresents -+ //gsi;
   $title =~ s/ \| / - /gsi;
   $title =~ s/ - Director - .*$//si;
+  $title =~ s/'s\s+['"](.*)['"]/ - $1/gsi;        #  foo's "bar" => foo - bar
   $title =~ s/^([^"]+) ['"](.*)['"]/$1 - $2/gsi;  #  foo "bar" => foo - bar
   $title =~ s/ -+ *-+ / - /gsi;
   $title =~ s/~/-/gsi;
   $title =~ s/[- ]+$//gs;
+
+  $title =~ s/\s+/ /gs;
+  $title =~ s/^\s+|\s+$//gs;
 
   $title =~ s/\b([a-z])([a-z\d']+)\b/$1\L$2/gsi   # capitalize words
     if ($title !~ m/[a-z]/s);                     # if it's all upper case
@@ -683,58 +850,75 @@ sub munge_title($) {
 }
 
 
-sub download_video_url($;$$$) {
-  my ($url, $title, $size_p, $cgi_p) = @_;
+# Does any version of the file exist with the usual video suffixes?
+# Returns the one that exists.
+#
+sub file_exists_with_suffix($) {
+  my ($f) = @_;
+  foreach my $ext (@video_extensions) {
+    my $ff = "$f.$ext";
+    return ($ff) if -f ($ff);
+  }
+  return undef;
+}
+
+
+sub download_video_url($$$$$);
+sub download_video_url($$$$$) {
+  my ($url, $title, $size_p, $cgi_p, $force_fmt) = @_;
 
   # Rewrite Vimeo URLs so that we get a page with the proper video title:
   # "/...#NNNNN" => "/NNNNN"
-  $url =~ s@^(http://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
+  $url =~ s@^(https?://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
 
   my ($id, $site, $playlist_p);
 
-  # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
-  if ($url =~ m@^http:// (?:[a-z]+\.)? (youtube) (?:-nocookie)? \.com/
-			 (?: (?: watch )? (?: \? | \#! ) v= |
-                             v/ |
-                             .*? &v= |
-                             [^/\#?&]+ \#p(?: /[a-zA-Z\d] )* /
-                         )
-			 ([^<>?&,'"]+) ($|&) @sx) {
-    ($site, $id) = ($1, $2);
-    $url = "http://www.$site.com/watch?v=$id";
-
   # Youtube /view_play_list?p= or /p/ URLs. 
-  } elsif ($url =~ m@^http://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
-		(?:view_play_list\?p=|p/) ([^<>?&,]+) ($|&) @sx) {
+  if ($url =~ m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
+                (?: view_play_list\?p= |
+                    embed/p/ |
+                    p/
+                )
+                ([^<>?&,]+) ($|&) @sx) {
     ($site, $id) = ($1, $2);
-    $url = "http://www.$site.com/view_play_list?p=$id";
+    $url = "https?://www.$site.com/view_play_list?p=$id";
     $playlist_p = 1;
+
+  # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
+  } elsif ($url =~ m@^https?:// (?:[a-z]+\.)? (youtube) (?:-nocookie)? \.com/
+                     (?: (?: watch )? (?: \? | \#! ) v= |
+                         v/ |
+                         embed/ |
+                         .*? &v= |
+                         [^/\#?&]+ \#p(?: /[a-zA-Z\d] )* /
+                     )
+                     ([^<>?&,'"]+) ($|&) @sx) {
+    ($site, $id) = ($1, $2);
+    $url = "https?://www.$site.com/watch?v=$id";
 
   # Youtube "/verify_age" URLs.
   } elsif ($url =~ 
-           m@^http://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
+           m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
 	     .* next_url=([^&]+)@sx) {
     $site = $1;
     $url = url_unquote($2);
-    $url =~ s@&.*$@@s;
-    ($id) = ($url =~ m@(?: watch (?: \? | \#! ) v= | v/ )
-		       ([^<>?&,'"]+) ($|&) @sx);
-    error ("unparsable verify_age next_url: $url") unless $id;
+    $url = "http://www.$site.com$url" if ($url =~ m@^/@s);
+    return download_video_url ($url, $title, $size_p, $cgi_p, $force_fmt);
 
   # Youtube "/user" and "/profile" URLs.
-  } elsif ($url =~ m@^http://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
                      (?:user|profile).*\#.*/([^&/]+)@sx) {
     $site = $1;
     $id = url_unquote($2);
-    $url = "http://www.$site.com/watch?v=$id";
+    $url = "https?://www.$site.com/watch?v=$id";
     error ("unparsable user next_url: $url") unless $id;
 
   # Vimeo /NNNNNN URLs.
-  } elsif ($url =~ m@^http://(?:[a-z]+\.)?(vimeo)\.com/(\d+)@s) {
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(\d+)@s) {
     ($site, $id) = ($1, $2);
 
   # Vimeo /videos/NNNNNN URLs.
-  } elsif ($url =~ m@^http://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+)@s) {
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+)@s) {
     ($site, $id) = ($1, $2);
 
   } else {
@@ -746,26 +930,32 @@ sub download_video_url($;$$$) {
     return download_playlist ($id, $url, $title, $size_p, $cgi_p);
   }
 
-  my ($file, $ofile);
+  my $suf = ($append_suffix_p eq '1' ? "$id" :
+             $append_suffix_p ? "$id $append_suffix_p" : "");
+  $suf =~ s@/.*$@@s;
+  $suf = " [$suf]" if $suf;
 
-  my $suf = ($append_suffix_p ? " [$id]" : "");
+  # Check for any file with "[this-ID]" in it, as written by --suffix,
+  # in case the title changed or something.  IDs don't change.
+  #
+  my $err = undef;
+  my $o = (glob ("*\\[$id\\]*"))[0];
+  $err = "exists: $o" if ($o);
 
   # If we already have a --title, we can check for the existence of the file
   # before hitting the network.  Otherwise, we need to download the video
   # info to find out the title and thus the file name.
   #
   if (defined($title)) {
-    $title = munge_title ($title);
-    $file  = de_entify ("$title$suf.mp4");
-    $ofile = de_entify ("$title$suf.flv");
+    $title  = munge_title ($title);
+    my $ff = file_exists_with_suffix (de_entify ("$title$suf"));
 
     if (! $size_p) {
-      my $err;
-      $err = "exists: $ofile" if (-f $ofile);
-      $err = "exists: $file"  if (-f $file);
-      # Skip silently if --quiet was specified.
-      exit (1) if ($err && $verbose <= 0);
-      error ($err) if $err;
+      $err = "$id: exists: $ff"  if ($ff && !$err);
+      if ($err) {
+        exit (1) if ($verbose <= 0); # Skip silently if --quiet.
+        error ($err);
+      }
     }
   }
 
@@ -774,26 +964,33 @@ sub download_video_url($;$$$) {
   # Get the video metadata (URL of underlying video, title, and size)
   #
   if ($site eq 'youtube') {
-    ($ct, $url, $title2, $w, $h, $size) = scrape_youtube_url ($url, $id);
+    ($ct, $url, $title2, $w, $h, $size) = 
+      scrape_youtube_url ($url, $id, $title, $size_p, $force_fmt);
   } else {
+    error ("--fmt only works with Youtube") if (defined($force_fmt));
     ($ct, $url, $title2, $w, $h, $size) = scrape_vimeo_url ($url, $id);
   }
 
   # Set the title unless it was specified on the command line with --title.
   #
-  if (! defined ($title)) {
-    $title = munge_title ($title2);
-    $file  = de_entify ("$title$suf.mp4");
-    $ofile = de_entify ("$title$suf.flv");
-  }
+  $title = munge_title ($title2) unless defined ($title);
 
-  $file = $ofile if ($ct && $ct =~ m/flv/s);  # use proper extensions
+  my $file = de_entify ("$title$suf");
+  if    ($ct =~ m@/(x-)?flv$@si)  { $file .= '.flv';  }   # proper extensions
+  elsif ($ct =~ m@/(x-)?webm$@si) { $file .= '.webm'; }
+  else                            { $file .= '.mp4';  }
 
   if ($size_p) {
     if (! ($w && $h)) {
       ($w, $h, $size) = video_url_size ($title, $id, $url);
     }
-    print STDOUT "$id\t$w x $h\t$title\n";
+    my $ii = $id . ($size_p eq '1' ? '' : ":$size_p");  # for "--fmt all"
+
+    my $ss = ($size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
+              $size > 1024 ? sprintf ("%dK", $size/1024) :
+              "$size bytes");
+
+    print STDOUT "$ii\t${w} x ${h}\t$ss\t$title\n";
 
   } elsif ($cgi_p) {
     cgi_output ($title, $file, $id, $url, $w, $h, $size);
@@ -801,12 +998,14 @@ sub download_video_url($;$$$) {
   } else {
 
     # Might be checking twice, if --title was specified.
-    my $err;
-    $err = "exists: $ofile" if (-f $ofile);
-    $err = "exists: $file"  if (-f $file);
-    # Skip silently if --quiet was specified.
-    exit (1) if ($err && $verbose <= 0);
-    error ($err) if $err;
+    if (! $err) {
+      my $ff = file_exists_with_suffix (de_entify ("$title$suf"));
+      $err = "$id: exists: $ff"  if ($ff);
+    }
+    if ($err) {
+      exit (1) if ($verbose <= 0); # Skip silently if --quiet.
+      error ($err);
+    }
 
     print STDERR "$progname: downloading \"$title\"\n" if ($verbose);
 
@@ -819,7 +1018,11 @@ sub download_video_url($;$$$) {
     }
 
     if ($verbose) {
-      my ($w, $h, $size) = video_file_size ($file);
+
+      # Now that we've written the file, get the real numbers from it,
+      # in case the server metadata lied to us.
+      ($w, $h, $size) = video_file_size ($file);
+
       $size = -1 unless $size;
       my $ss = ($size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
                 $size > 1024 ? sprintf ("%dK", $size/1024) :
@@ -836,7 +1039,7 @@ sub download_playlist($$$$$) {
 
   # max-results is ignored if it is >50, so this will fail on any
   # playlist with more than 50 entries in it.
-  my $data_url = ("http://gdata.youtube.com/feeds/api/playlists/$id?v=2" .
+  my $data_url = ("https?://gdata.youtube.com/feeds/api/playlists/$id?v=2" .
                   "&max-results=50" .
                   "&fields=title,entry(title,link)" .
                   "&strict=true");
@@ -859,11 +1062,11 @@ sub download_playlist($$$$$) {
     my ($t2) = ($entry =~ m@<title>\s*([^<>]+?)\s*</title>@si);
     my ($u2, $id2) =
       ($entry =~ m@<link.*?href=['"]
-                   (http://[a-z.]+/
-                   (?: watch (?: \? | \#! ) v= | v/ )
+                   (https?://[a-z.]+/
+                   (?: watch (?: \? | \#! ) v= | v/ | embed/ )
                    ([^<>?&,'"]+))@sxi);
     $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
-    download_video_url ($u2, $t2, $size_p, $cgi_p);
+    download_video_url ($u2, $t2, $size_p, $cgi_p, undef);
 
     # With "--size", only get the size of the first video.
     # With "--size --size", get them all.
@@ -930,7 +1133,7 @@ sub do_cgi() {
   } elsif ($url) {
     error ("extraneous crap in URL: $ENV{PATH_INFO}")
       if (defined($ENV{PATH_INFO}) && $ENV{PATH_INFO} ne "");
-    download_video_url ($url, undef, 0, 1);
+    download_video_url ($url, undef, 0, 1, undef);
 
   } else {
     error ("no URL specified for CGI");
@@ -957,7 +1160,8 @@ sub error($) {
 
 
 sub usage() {
-  print STDERR "usage: $progname [--verbose] [--quiet] [--size] [--suffix]\n" .
+  print STDERR "usage: $progname [--verbose] [--quiet] [--size]" .
+		       " [--suffix] [--fmt N]\n" .
                "\t\t   [--title title] youtube-or-vimeo-urls ...\n";
   exit 1;
 }
@@ -967,7 +1171,7 @@ sub main() {
   # historical suckage: the environment variable name is lower case.
   $http_proxy = $ENV{http_proxy} || $ENV{HTTP_PROXY};
 
-  if ($http_proxy && $http_proxy =~ m@^http://([^/]*)/?$@ ) {
+  if ($http_proxy && $http_proxy =~ m@^https?://([^/]*)/?$@ ) {
     # historical suckage: allow "http://host:port" as well as "host:port".
     $http_proxy = $1;
   }
@@ -975,31 +1179,35 @@ sub main() {
   my @urls = ();
   my $title = undef;
   my $size_p = 0;
+  my $fmt = undef;
 
   while ($#ARGV >= 0) {
     $_ = shift @ARGV;
-    if (m/^--?verbose$/) { $verbose++; }
-    elsif (m/^-v+$/) { $verbose += length($_)-1; }
-    elsif (m/^--?quiet$/) { $verbose--; }
-    elsif (m/^--?title$/) { $title = shift @ARGV; }
-    elsif (m/^--?size$/) { $size_p++; }
+    if (m/^--?verbose$/)   { $verbose++; }
+    elsif (m/^-v+$/)       { $verbose += length($_)-1; }
+    elsif (m/^--?quiet$/)  { $verbose--; }
+    elsif (m/^--?title$/)  { $title = shift @ARGV; }
+    elsif (m/^--?size$/)   { $size_p++; }
     elsif (m/^--?suffix$/) { $append_suffix_p++; }
-    elsif (m/^-./) { usage; }
+    elsif (m/^--?fmt$/)    { $fmt = shift @ARGV; }
+    elsif (m/^-./)         { usage; }
     else { 
       error ("not a Youtube or Vimeo URL: $_")
-        unless (m@^http://([a-z]+\.)?(youtube(-nocookie)?|vimeo)\.com/@s);
-      my @pair = ($title, $_);
-      push @urls, \@pair;
+        unless (m@^https?://([a-z]+\.)?(youtube(-nocookie)?|vimeo)\.com/@s);
+      my @P = ($title, $fmt, $_);
+      push @urls, \@P;
       $title = undef;
     }
   }
 
   return do_cgi() if (defined ($ENV{REQUEST_URI}));
 
+  usage if (defined($fmt) && $fmt !~ m/^\d+|all$/s);
+
   usage unless ($#urls >= 0);
   foreach (@urls) {
-    my ($title, $url) = @$_;
-    download_video_url ($url, $title, $size_p);
+    my ($title, $fmt, $url) = @$_;
+    download_video_url ($url, $title, $size_p, 0, $fmt);
   }
 }
 
