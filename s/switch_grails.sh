@@ -18,34 +18,38 @@ GROOVY_CURRENT=`readlink ${DIR}/groovy`
 #echo ${GRAILS_CURRENT}
 #echo ${GROOVY_CURRENT}
 
-rm -f ${DIR}/grails
-rm -f ${DIR}/groovy
+link_old ()
+{
+    #echo "Setting up grails_old"
+    rm -f ${DIR}/grails
+    rm -f ${DIR}/groovy
+    ln -s ${DIR}/${GRAILS_OLD} ${DIR}/grails
+    ln -s ${DIR}/${GROOVY_OLD} ${DIR}/groovy
+}
+link_new ()
+{
+    #echo "Setting up grails_new"
+    rm -f ${DIR}/grails
+    rm -f ${DIR}/groovy
+    ln -s ${DIR}/${GRAILS_NEW} ${DIR}/grails
+    ln -s ${DIR}/${GROOVY_NEW} ${DIR}/groovy
+}
 
 case "$1" in 
-    1.3.7) 
-        #echo "Switch $1 -- 1.3.7"
-        ln -s ${DIR}/${GRAILS_OLD} grails
-        ln -s ${DIR}/${GROOVY_OLD} groovy
+    1.3.7) link_old
     ;;
-    2.0) 
-        #echo "Switch $1 -- 2.0"
-        ln -s ${DIR}/${GRAILS_NEW} grails
-        ln -s ${DIR}/${GROOVY_NEW} groovy
+    2.0) link_new
     ;;
-    2.0.0) 
-        #echo "Switch $1 -- 2.0.0"
-        ln -s ${DIR}/${GRAILS_NEW} grails
-        ln -s ${DIR}/${GROOVY_NEW} groovy
+    2.0.0) link_new
     ;;
     *)
-        #echo "Switch default"
         if [ "${GRAILS_CURRENT}" == "${DIR}/${GRAILS_NEW}" ]
         then
-            ln -s ${DIR}/${GRAILS_OLD} grails
-            ln -s ${DIR}/${GROOVY_OLD} groovy
+            #echo "Setting up grails_old"
+            link_old
         else
-            ln -s ${DIR}/${GRAILS_NEW} grails
-            ln -s ${DIR}/${GROOVY_NEW} groovy
+            #echo "Setting up grails_new"
+            link_new
         fi
     ;;
 esac
