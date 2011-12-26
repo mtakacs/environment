@@ -66,7 +66,7 @@ a cp='cp -pr'
 a pwd='pwd -P'
 a clean='\rm -f *~ .*~ \#* .\#*'
 a h='history \!* | more'
-a hg='history | egrep \!*'
+# a hg='history | egrep \!*'
 a j='jobs'
 a jc="javac -g"
 a java_dbg="java -Xdebug -Xnoagent -Djava.compiler=NONE -Xrunjdwp:transport=dt_socket,server=y,address=8888,suspend=y"
