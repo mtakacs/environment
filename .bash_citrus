@@ -11,8 +11,11 @@ alias e=export
 
 #e AWS1="ec2-50-18-80-157.us-west-1.compute.amazonaws.com"
 #e AWS2="ec2-50-18-68-122.us-west-1.compute.amazonaws.com
+e BLOG="50.18.123.151"
 e AWS1="50.18.127.91"
 e AWS2="50.18.127.111"
+e AWS3="184.72.50.231"
+e AWS4="ec2-50-18-230-44.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
@@ -22,6 +25,23 @@ a bushel='ssh -l root bushel'
 a blog='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.123.151' 
 a aws1='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.91'
 a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.111'
+a aws3='ssh -l ubuntu -i ~/.ssh/citruslane.pem 184.72.50.231'
+a aws4='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-50-18-230-44.us-west-1.compute.amazonaws.com'
+a aws6='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-29-120.us-west-1.compute.amazonaws.com'
+a aws7='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-143-78.us-west-1.compute.amazonaws.com'
+a aws8='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-14-109.us-west-1.compute.amazonaws.com'
+a aws9='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-171-87.us-west-1.compute.amazonaws.com'
+
+#################################
+# Run gradle as a daemon so as to avoid startup/teardown costs
+#   http://www.practicalgradle.org/blog/2010/11/gradle-daemon/
+#################################
+#e GRADLE_OPTS="-Dorg.gradle.daemon=true"
+
+#################################
+# grails options
+#################################
+e GRAILS_FLAGS="--stacktrace --plain-output --verbose"
 
 
 #eof

@@ -31,6 +31,8 @@
 	unstage = reset HEAD --
 	last = log -1 HEAD
 	dirty = branch --no-merged
+    relnotes = shortlog --no-merges v1.0.9...HEAD
+    history = log --follow
 [merge]
 	tool = opendiff
 [github]

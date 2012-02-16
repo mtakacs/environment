@@ -225,6 +225,7 @@ e MAVEN_HOME="/usr/local/maven"
 
 #e CATALINA_HOME="/usr/local/apache-tomcat-6.0.32"
 [ -e /usr/local/tomcat6 ] && e CATALINA_HOME="/usr/local/tomcat6"
+[ -e /usr/local/tomcat7 ] && e CATALINA_HOME="/usr/local/tomcat7"
 
 #################################
 # JAVA HOME

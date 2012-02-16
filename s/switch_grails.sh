@@ -7,8 +7,8 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 DIR=/usr/local
-GRAILS_NEW=grails-2.0.0
-GROOVY_NEW=groovy-1.8.5
+GRAILS_NEW=grails-2.0.1
+GROOVY_NEW=groovy-1.8.6
 GRAILS_OLD=grails-1.3.7
 GROOVY_OLD=groovy-1.7.10
 

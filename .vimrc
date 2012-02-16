@@ -7,7 +7,7 @@
 set expandtab
 set ts=4
 set shiftwidth=4
-set textwidth=66
+"set textwidth=66
 
 filetype indent on
 
