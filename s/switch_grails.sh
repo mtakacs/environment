@@ -34,13 +34,18 @@ link_new ()
     ln -s ${DIR}/${GRAILS_NEW} ${DIR}/grails
     ln -s ${DIR}/${GROOVY_NEW} ${DIR}/groovy
 }
+purge_grails_cache ()
+{
+    echo "Purging grails cache"
+    rm -rf ${HOME}/.grails ${HOME}/.ivy2
+}
 
 case "$1" in 
     1.3.7) link_old
     ;;
     2.0) link_new
     ;;
-    2.0.0) link_new
+    2.0.1) link_new
     ;;
     *)
         if [ "${GRAILS_CURRENT}" == "${DIR}/${GRAILS_NEW}" ]
@@ -53,6 +58,7 @@ case "$1" in
         fi
     ;;
 esac
+purge_grails_cache
 
 GRAILS_CURRENT=`readlink ${DIR}/grails`
 GROOVY_CURRENT=`readlink ${DIR}/groovy`
