@@ -27,10 +27,11 @@ a aws1='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.91'
 a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem 50.18.127.111'
 a aws3='ssh -l ubuntu -i ~/.ssh/citruslane.pem 184.72.50.231'
 a aws4='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-50-18-230-44.us-west-1.compute.amazonaws.com'
-a aws6='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-29-120.us-west-1.compute.amazonaws.com'
-a aws7='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-143-78.us-west-1.compute.amazonaws.com'
-a aws8='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-14-109.us-west-1.compute.amazonaws.com'
-a aws9='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-171-87.us-west-1.compute.amazonaws.com'
+a aws5='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-169-248-158.us-west-1.compute.amazonaws.com'
+a aws6='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-169-243-209.us-west-1.compute.amazonaws.com'
+#a aws7='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-143-78.us-west-1.compute.amazonaws.com'
+#a aws8='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-14-109.us-west-1.compute.amazonaws.com'
+#a aws9='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-171-87.us-west-1.compute.amazonaws.com'
 
 #################################
 # Run gradle as a daemon so as to avoid startup/teardown costs
@@ -42,6 +43,6 @@ a aws9='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-171-87.us-west-1.comp
 # grails options
 #################################
 e GRAILS_FLAGS="--stacktrace --plain-output --verbose"
-
+e GRAILS_OPTS="-Xmx700m -XX:MaxPermSize=384m"   ##grails 2.x interactive console uses more than default space
 
 #eof
