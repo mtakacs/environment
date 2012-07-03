@@ -3,7 +3,7 @@
 
 # Compiled source #
 ###################
-*.com
+# *.com  ## grrr, screens out adding dirnames that mirror dns names
 *.class
 *.dll
 *.exe
