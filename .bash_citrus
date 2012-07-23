@@ -30,6 +30,11 @@ e AWS2odd="ec2-204-236-173-37.us-west-1.compute.amazonaws.com"
 e AWS3odd="ec2-204-236-136-127.us-west-1.compute.amazonaws.com"
 e AWS4odd="ec2-204-236-160-106.us-west-1.compute.amazonaws.com"
 
+e AWS1even="ec2-50-18-24-5.us-west-1.compute.amazonaws.com"
+e AWS2even="ec2-184-169-199-167.us-west-1.compute.amazonaws.com"
+e AWS3even="ec2-50-18-21-37.us-west-1.compute.amazonaws.com"
+e AWS4even="ec2-184-169-200-243.us-west-1.compute.amazonaws.com"
+
 #################################
 # convenience destinations
 #################################
@@ -53,11 +58,15 @@ a aws4='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4}'
 a awsimg='ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSIMG}'
 a awsstage1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSSTAGE1}'
 
-
 a aws1odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1odd}'
 a aws2odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2odd}'
 a aws3odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3odd}'
 a aws4odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4odd}'
+
+a aws1even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1even}'
+a aws2even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2even}'
+a aws3even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3even}'
+a aws4even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4even}'
 
 #################################
 # Run gradle as a daemon so as to avoid startup/teardown costs
@@ -70,5 +79,8 @@ a aws4odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4odd}'
 #################################
 e GRAILS_FLAGS="--https --stacktrace --plain-output --verbose"
 e GRAILS_OPTS="-Xmx700m -XX:MaxPermSize=384m"   ##grails 2.x interactive console uses more than default space
+
+
+e JAVA_HOME="/System/Library/Frameworks/JavaVM.framework/Home"
 
 #eof
