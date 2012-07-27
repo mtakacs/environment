@@ -27,13 +27,13 @@ e AWS4_G2='ec2-50-18-150-175.us-west-1.compute.amazonaws.com'
 
 e AWS1odd="ec2-184-169-215-157.us-west-1.compute.amazonaws.com"
 e AWS2odd="ec2-184-169-194-125.us-west-1.compute.amazonaws.com"
-e AWS3odd="c2-204-236-174-241.us-west-1.compute.amazonaws.com"
+e AWS3odd="ec2-204-236-174-241.us-west-1.compute.amazonaws.com"
 e AWS4odd="ec2-50-18-96-214.us-west-1.compute.amazonaws.com"
 
 e AWS1even="ec2-50-18-24-5.us-west-1.compute.amazonaws.com"
 e AWS2even="ec2-184-169-199-167.us-west-1.compute.amazonaws.com"
 e AWS3even="ec2-50-18-21-37.us-west-1.compute.amazonaws.com"
-e AWS4even="eec2-184-169-200-243.us-west-1.compute.amazonaws.com"
+e AWS4even="ec2-184-169-200-243.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
