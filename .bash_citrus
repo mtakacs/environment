@@ -18,7 +18,9 @@ e AWS2="50.18.127.111"
 e AWS3="184.72.50.231"
 e AWS4="ec2-50-18-230-44.us-west-1.compute.amazonaws.com"
 e AWSIMG="184.169.163.163"
-e AWSSTAGE1="ec2-50-18-23-30.us-west-1.compute.amazonaws.com"
+
+e AWS1stage="ec2-184-169-235-212.us-west-1.compute.amazonaws.com"
+e AWS2stage="ec2-50-18-132-176.us-west-1.compute.amazonaws.com"
 
 e AWS1_G2='ec2-184-72-29-163.us-west-1.compute.amazonaws.com'
 e AWS2_G2='ec2-50-18-228-246.us-west-1.compute.amazonaws.com'
@@ -63,7 +65,10 @@ a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2}'
 a aws3='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3}'
 a aws4='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4}'
 a awsimg='ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSIMG}'
-a awsstage1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSSTAGE1}'
+
+a aws1stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1stage}'
+a aws2stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2stage}'
+
 a aws1spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1spof}'
 
 a aws1odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1odd}'
