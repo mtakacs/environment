@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# Copyright © 2007-2011 Jamie Zawinski <jwz@jwz.org>
+# Copyright © 2007-2012 Jamie Zawinski <jwz@jwz.org>
 #
 # Permission to use, copy, modify, distribute, and sell this software and its
 # documentation for any purpose is hereby granted without fee, provided that
@@ -17,7 +17,9 @@
 #  --size            Instead of downloading it all, print video dimensions.
 #		     This requires "mplayer" and/or "ffmpeg".
 #
-# You can also use it as a bookmarklet: put it somewhere on your web server
+# For playlists, it will download each video to its own file.
+#
+# You can also use this as a bookmarklet: put it somewhere on your web server
 # as a .cgi, then bookmark this URL:
 #
 #   javascript:location='http://YOUR_SITE/youtubedown.cgi?url='+location
@@ -37,12 +39,17 @@
 # Created: 25-Apr-2007.
 
 require 5;
-#use diagnostics;
+use diagnostics;
 use strict;
 use Socket;
 
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.98 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.139 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+
+# Without this, [:alnum:] doesn't work on non-ASCII.
+use locale;
+use POSIX qw(locale_h);
+setlocale(LC_ALL, "en_US");
 
 my $verbose = 1;
 my $append_suffix_p = 0;
@@ -52,6 +59,29 @@ my $http_proxy = undef;
 $ENV{PATH} = "/opt/local/bin:$ENV{PATH}";   # for macports mplayer
 
 my @video_extensions = ("mp4", "flv", "webm");
+
+
+my $noerror = 0;
+
+sub error($) {
+  my ($err) = @_;
+
+  if (defined ($ENV{HTTP_HOST})) {
+    $err =~ s/&/&amp;/gs;
+    $err =~ s/</&lt;/gs;
+    $err =~ s/>/&gt;/gs;
+    print STDOUT ("Content-Type: text/html\n" .
+                  "Status: 500\n" .
+                  "\n" .
+                  "<P><B>ERROR:</B> " . $err . "<P>\n");
+    exit 1;
+  } elsif ($noerror) {
+    die "$err\n";
+  } else {
+    print STDERR "$progname: $err\n";
+    exit 1;
+  }
+}
 
 
 sub de_entify($) {
@@ -91,8 +121,8 @@ sub html_quote($) {
 
 # Loads the given URL, returns: $http, $head, $body.
 #
-sub get_url_1($;$$$$) {
-  my ($url, $referer, $head_p, $to_file, $max_bytes) = @_;
+sub get_url_1($;$$$$$) {
+  my ($url, $referer, $extra_headers, $head_p, $to_file, $max_bytes) = @_;
   
   error ("can't do HEAD and write to a file") if ($head_p && $to_file);
 
@@ -146,9 +176,17 @@ sub get_url_1($;$$$$) {
               ($http_proxy ? $url : "/$path") . " HTTP/1.0\r\n" .
               "Host: $them\r\n" .
               "User-Agent: $user_agent\r\n");
-  if ($referer) {
-    $hdrs .= "Referer: $referer\r\n";
+
+  $extra_headers = '' unless defined ($extra_headers);
+  $extra_headers .= "\nReferer: $referer" if ($referer);
+  if ($extra_headers) {
+    $extra_headers =~ s/\r\n/\n/gs;
+    $extra_headers =~ s/\r/\n/gs;
+    foreach (split (/\n/, $extra_headers)) {
+      $hdrs .= "$_\r\n" if $_;
+    }
   }
+
   $hdrs .= "\r\n";
 
   if ($verbose > 3) {
@@ -190,14 +228,15 @@ sub get_url_1($;$$$$) {
     if ($to_file) {
       print $out $_;
       $bytes += length($_);
-      last if ($max_bytes && $bytes >= $max_bytes);
     } else {
       s/\r\n/\n/gs;
       $_ .= "\n" unless ($_ =~ m/\n$/s);
       print STDERR "  <== $_" if ($verbose > 4);
       $body .= $_;
+      $bytes += length($_);
       $lines++;
     }
+    last if ($max_bytes && $bytes >= $max_bytes);
   }
 
   if ($to_file) {
@@ -222,19 +261,22 @@ sub get_url_1($;$$$$) {
 # Loads the given URL, processes redirects.
 # Returns: $http, $head, $body, $final_redirected_url.
 #
-sub get_url($;$$$$) {
-  my ($url, $referer, $head_p, $to_file, $max_bytes) = @_;
+sub get_url($;$$$$$$) {
+  my ($url, $referer, $headers, $head_p, $to_file, $max_bytes, $retry_p) = @_;
 
   print STDERR "$progname: " . ($head_p ? "HEAD" : "GET") . " $url\n"
     if ($verbose > 2);
 
   my $orig_url = $url;
-  my $loop_count = 0;
-  my $max_loop_count = 10;
+  my $redirect_count = 0;
+  my $max_redirects  = 10;
+  my $error_count    = 0;
+  my $max_errors     = ($retry_p ? 10 : 0);
+  my $error_delay    = 1;
 
   do {
     my ($http, $head, $body) = 
-      get_url_1 ($url, $referer, $head_p, $to_file, $max_bytes);
+      get_url_1 ($url, $referer, $headers, $head_p, $to_file, $max_bytes);
 
     $http =~ s/[\r\n]+$//s;
 
@@ -265,9 +307,17 @@ sub get_url($;$$$$) {
         error ("no Location with \"$http\"");
       }
 
-      if ($loop_count++ > $max_loop_count) {
-        error ("too many redirects ($max_loop_count) from $orig_url");
+      if ($redirect_count++ > $max_redirects) {
+        error ("too many redirects ($max_redirects) from $orig_url");
       }
+
+    } elsif ( $http =~ m@^HTTP/[0-9.]+ 404@ &&	# Fucking Vimeo...
+              ++$error_count <= $max_errors) {
+      my $s = int ($error_delay);
+      print STDERR "$progname: ignoring 404 and retrying $url in $s...\n"
+        if ($verbose > 1);
+      sleep ($s);
+      $error_delay = ($error_delay + 1) * 1.2;
 
     } else {
       return ($http, $head, $body, $url);
@@ -348,7 +398,7 @@ sub video_url_size($$$) {
 
   my $bytes = 380 * 1024;	   # Need a lot of data to get size from HD
 
-  my ($http, $head, $body) = get_url ($url, undef, 0, $file, $bytes);
+  my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file, $bytes, 0);
   check_http_status ($url, $http, 1);
 
   my ($ct) = ($head =~ m/^content-type:\s*([^\s;&]+)/mi);
@@ -381,7 +431,7 @@ sub cgi_output($$$$$$$) {
   my $ss = ($size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
             $size > 1024 ? sprintf ("%dK", $size/1024) :
             "$size bytes");
-  $ss .= ", $w x $h" if ($w && $h);
+  $ss .= ", $w &times; $h" if ($w && $h);
 
 
   # I had hoped that transforming
@@ -424,12 +474,27 @@ sub cgi_output($$$$$$$) {
           '=' . url_quote($url));
   $url = html_quote ($url);
 
-  print STDOUT ("Content-Type: text/html; charset=UTF-8\n" .
-                "\n" .
-                "<TITLE>Download \"$title\"</TITLE>\n" .
-                #"<META HTTP-EQUIV=\"Refresh\" CONTENT=\"1;url=$url\">\n" .
-                "Save Link As: " .
-                "<A HREF=\"$url\">$title</A>, $ss.\n");
+  print STDOUT
+    ("Content-Type: text/html; charset=UTF-8\n" .
+     "\n" .
+     "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n" .
+     "	  \"http://www.w3.org/TR/html4/loose.dtd\">\n" .
+     "<HTML>\n" .
+     " <HEAD>\n" .
+     "  <TITLE>Download \"$title\"</TITLE>\n" .
+     #  "<META HTTP-EQUIV=\"Refresh\" CONTENT=\"1;url=$url\" />\n" .
+     " <STYLE TYPE=\"text/css\">\n" .
+     "  body { font-family: Arial,Helvetica,sans-serif; font-size: 12pt;\n" .
+     "         color: #000; background: #FFF; }\n" .
+     "  a { font-weight: bold; }\n" .
+     " </STYLE>\n" .
+     " </HEAD>\n" .
+     " <BODY>\n" .
+     "  Save Link As:&nbsp; " .
+     "  <A HREF=\"$url\">$title</A>, " .
+     "  <NOBR>$ss.</NOBR>\n" .
+     " </BODY>\n" .
+     "</HTML>\n");
 }
 
 
@@ -461,7 +526,7 @@ sub scrape_youtube_url($$$$$) {
     # If we couldn't get a URL map out of the info URL, try harder.
 
     if ($body =~ m/private[+\s]video/si) {  # scraping won't work.
-      error ("$progname: $id: private video");
+      error ("$id: private video");
     }
 
     my ($err) = ($body =~ m@reason=([^&]+)@s);
@@ -475,7 +540,7 @@ sub scrape_youtube_url($$$$$) {
     print STDERR "$progname: $id: no fmt_url_map$err.  Scraping HTML...\n"
       if ($verbose > 1);
 
-    return scrape_youtube_url_noembed ($url, $id, $size_p, $force_fmt);
+    return scrape_youtube_url_noembed ($url, $id, $size_p, $force_fmt, $err);
   }
 
   $urlmap  = url_unquote ($urlmap);
@@ -490,11 +555,43 @@ sub scrape_youtube_url($$$$$) {
 }
 
 
+# Return the year at which this video was uploaded.
+#
+sub get_youtube_year($) {
+  my ($id) = @_;
+  my $data_url = ("http://gdata.youtube.com/feeds/api/videos/$id?v=2" .
+                  "&fields=published" .
+                  "&safeSearch=none" .
+                  "&strict=true");
+  my ($http, $head, $body) = get_url ($data_url, undef, undef, 0, undef);
+  return undef unless check_http_status ($data_url, $http, 0);
+
+  my ($year, $mon, $dotm, $hh, $mm, $ss) = 
+    ($body =~ m@<published>(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)@si);
+  return $year;
+}
+
+
+# Return the year at which this video was uploaded.
+#
+sub get_vimeo_year($) {
+  my ($id) = @_;
+  my $data_url = "http://vimeo.com/api/v2/video/$id.xml";
+  my ($http, $head, $body) = get_url ($data_url, undef, undef, 0, undef);
+  return undef unless check_http_status ($data_url, $http, 0);
+
+  my ($year, $mon, $dotm, $hh, $mm, $ss) = 
+    ($body =~ m@<upload_date>(\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)@si);
+  return $year;
+}
+
+
+
 # This version parses the HTML, since the video_info page is unavailable
 # for "embedding disabled" videos.
 #
-sub scrape_youtube_url_noembed($$$$) {
-  my ($url, $id, $size_p, $force_fmt) = @_;
+sub scrape_youtube_url_noembed($$$$$) {
+  my ($url, $id, $size_p, $force_fmt, $oerror) = @_;
 
   my ($http, $head, $body) = get_url ($url);
 
@@ -528,14 +625,14 @@ sub scrape_youtube_url_noembed($$$$) {
   # Youtube returns HTTP 404 pages that have real messages in them.
   check_http_status ($url, $http, 1);
 
-  error ("$id: no SWF_ARGS in $url") unless $args;
+  error ("$id: no SWF_ARGS$oerror") unless $args;
 
   my ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": "(.*?)"@s);
   ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": "(.*?)"@s)	    # VEVO
     unless $urlmap;
   ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": "(.*?)"@s)
     unless $urlmap;			   # New nonsense seen in Aug 2011
-  error ("$id: no fmt_url_map in $url") unless $urlmap;
+  error ("$id: no fmt_url_map$oerror") unless $urlmap;
   print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
 
   my ($fmtlist) = ($args =~ m@"fmt_list": "(.*?)"@s);
@@ -635,6 +732,7 @@ sub scrape_youtube_url_2($$$$$$$) {
   # 34* FLV h.264  593 Kbps  640x360  30.000 fps  AAC  52 Kbps  2ch 22.05 KHz
   # 35  FLV h.264  831 Kbps  640x360  29.942 fps  AAC 107 Kbps  2ch 44.10 KHz
   # 35* FLV h.264 1185 Kbps  854x480  30.000 fps  AAC 107 Kbps  2ch 44.10 KHz
+  # 36  3GP h.264  191 Kbps  320x240  29.970 fps  AAC  37 Kbps  1ch 22.05 KHz
   # 37  MP4 h.264 3653 Kbps 1920x1080 29.970 fps  AAC 128 Kbps  2ch 44.10 KHz
   # 38  MP4 h.264 6559 Kbps 4096x2304 23.980 fps  AAC 128 Kbps  2ch 48.00 KHz
   # 43  WebM vp8   481 Kbps  480x360  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
@@ -684,14 +782,17 @@ sub scrape_youtube_url_2($$$$$$$) {
   #   15-Nov-2011: 3D, fmts 46, 83, 85, 101.  This one has left/right images
   #   in all of the formats, even the 2D formats.
   #
+  #   http://www.youtube.com/watch?v=711bZ_pLusQ
+  #   30-May-2012: First sighting of fmt 36, 3gpp/240p.
+  #
   # The table on http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
   # disagrees with the above to some extent.  Which is more accurate?
   #
 
   my %known_formats  = (   0 => 1,   5 => 1,   6 => 1, 13 => 1, 17 => 1,
-                          18 => 1,  22 => 1,  34 => 1, 35 => 1, 37 => 1,
-                          38 => 1,  43 => 1,  44 => 1, 45 => 1, 46 => 1,
-                          82 => 1,  83 => 1,  84 => 1,  85 => 1,
+                          18 => 1,  22 => 1,  34 => 1, 35 => 1, 36 => 1,
+                          37 => 1,  38 => 1,  43 => 1, 44 => 1, 45 => 1,
+                          46 => 1,  82 => 1,  83 => 1, 84 => 1, 85 => 1,
                          100 => 1, 101 => 1, 102 => 1,
                        );
   my @preferred_fmts = ( 38,  # huge mp4
@@ -737,9 +838,9 @@ sub scrape_youtube_url_2($$$$$$$) {
     push @unk, $k if (!$known_formats{$k});
   }
   print STDERR "$progname: $id: unknown format " . join(', ', @unk) .
-               ": please report URL to jwz\@jwz.org!\n"
+               ": please report URL to jwz\@jwz.org!\n" .
+        "             (make sure you have the latest $progname first.)\n"
       if (@unk);
-
 
   $url =~ s@^.*?\|@@s;  # VEVO
 
@@ -751,7 +852,7 @@ sub scrape_youtube_url_2($$$$$$$) {
   # and the content-type for the file name.
   #
   my ($http, $head, $body);
-  ($http, $head, $body, $url) = get_url ($url, undef, 1);
+  ($http, $head, $body, $url) = get_url ($url, undef, undef, 1);
   check_http_status ($url, $http, 1);
   my ($ct)   = ($head =~ m/^content-type:\s*([^\s;]+)/mi);
   my ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
@@ -771,39 +872,58 @@ sub scrape_youtube_url_2($$$$$$$) {
 sub scrape_vimeo_url($$) {
   my ($url, $id) = @_;
 
-  my $info_url = "http://vimeo.com/moogaloop/load/clip:$id";
-# my $info_url = "http://vimeo.com/api/v2/video/$id.xml";
-  my ($http, $head, $body) = get_url ($info_url);
-  check_http_status ($url, $http, 1);
+  # Vimeo's New Way, May 2012.
 
-  my ($sig) = ($body =~ m@<request_signature>([^<>]+)</@si);
-  if (! $sig) {
-    error ("$id: $1") if ($body =~ m@<error_id>([^<>]+)</@si);
-    error ("$id: no signature in $info_url");
+  my $info_url = "http://vimeo.com/$id?action=download";
+  my $referer = $url;
+  my $hdrs = ("X-Requested-With: XMLHttpRequest\n");
+  my ($http, $head, $body) = get_url ($info_url, $referer, $hdrs);
+
+  if (!check_http_status ($info_url, $http, 0)) {
+    my ($err) = ($body =~ m@"display_message":"(.*?)"[,}]@si);
+    $err = 'unknown error' unless $err;
+    $err =~ s@<[^<>]*>@@gsi;
+    if ($err =~ m/private[+\s]video/si) {
+      print STDERR "$progname: $id: private video.  Scraping HTML...\n"
+        if ($verbose > 1);
+      return scrape_vimeo_private ($url, $id);
+    } else {
+      error ("$id: error: $err");
+    }
   }
-  my ($exp) = ($body =~ m@<request_signature_expires>([^<>]+)</@si);
-  error ("$id: no expiration in $info_url") unless ($exp);
 
-  my ($w)     = ($body =~ m@<width>(\d+)</@si);
-  my ($h)     = ($body =~ m@<height>(\d+)</@si);
-  my ($hd)    = ($body =~ m@<isHD>([^<>]+)</@si);
-  my ($title) = ($body =~ m@<caption>([^<>]+)</@si);
+  my ($title) = ($body =~ m@<H4>([^<>]+)</@si);
   $title = de_entify ($title) if $title;
-  $hd = ($hd ? 'hd' : 'sd');
+  $title =~ s/^Download //si;
 
-  $url = "http://vimeo.com/moogaloop/play/clip:$id/$sig/$exp/?q=$hd";
+  my ($w, $h, $size);
+  my $max = 0;
+  $body =~ s@<A \b [^<>]*?
+                HREF=\"([^\"]+)\" [^<>]*?
+                DOWNLOAD="[^\"]+? _(\d+)x(\d+) \.
+             .*? </A>
+             .*? ( \d+ ) \s* MB
+            @{
+              my $url2;
+              ($url2, $w, $h, $size) = ($1, $2, $3, $4);
+              $url2 = "http://vimeo.com$url2" if ($url2 =~ m!^/!s);
+              print STDERR "$progname: $id: ${w}x$h ${size}MB: $url2\n"
+                if ($verbose > 1);
+              # If two videos have the same size in MB, pick higher rez.
+              my $nn = ($size * 10000000) + ($w * $h);
+              if ($nn > $max) {
+                $url = $url2;
+                $max = $nn;
+              }
+              '';
+            }@gsexi;
 
-  my ($ct, $size);
-  ($http, $head, $body) = get_url ($url, undef, 1);
+  print STDERR "$progname: $id: selected ${w}x$h ${size}MB: $url\n"
+    if ($verbose > 1);
 
-  ($ct) = ($head =~ m/^content-type:\s*([^\s;]+)/mi);
-
-  if (! check_http_status ($url, $http, 0) ||
-      $ct !~ m@^video/@si) {
-    $url =~ s/q=hd\b/q=sd/s;
-    ($http, $head, $body) = get_url ($url, undef, 1);
-    check_http_status ($url, $http, 1);
-  }
+  # HEAD doesn't work, so just do a GET but don't read the body.
+  my $ct;
+  ($http, $head, $body) = get_url ($url, $referer, $hdrs, 0, undef, 1);
 
   ($ct)   = ($head =~ m/^content-type:\s*([^\s;]+)/mi);
   ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
@@ -814,8 +934,49 @@ sub scrape_vimeo_url($$) {
 }
 
 
+sub scrape_vimeo_private($$) {
+  my ($url, $id) = @_;
+
+  my ($http, $head, $body) = get_url ($url);
+  return undef unless check_http_status ($url, $http, 0);
+
+  my ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si);
+  my ($sig)   = ($body  =~ m@"signature":"([a-fA-F\d]+)"@s);
+  my ($time)  = ($body  =~ m@"timestamp":"?(\d+)"?@s);
+  my ($files) = ($body  =~ m@"files":{(.*?)}@s);
+
+  error ("$id: vimeo HTML unparsable") unless ($sig && $time && $files);
+
+  # Have seen "hd", "sd" and "mobile" for $qual.  Hopefully they are sorted.
+  my ($codec, $qual) = ($files =~ m@^\"([^\"]+)\":\[\"([^\"]+)\"@si);
+
+  error ("$id: vimeo HTML unparsable") unless ($qual && $codec);
+
+  $url = ('http://player.vimeo.com/play_redirect' .
+          '?clip_id=' . $id .
+          '&quality=' . $qual .
+          '&codecs='  . $codec .
+          '&time='    . $time .
+          '&sig='     . $sig .
+          '&type=html5_desktop_local');
+
+  my $ct = ($codec =~ m@mov@si  ? 'video/quicktime' :
+            $codec =~ m@flv@si  ? 'video/flv' :
+            $codec =~ m@webm@si ? 'video/webm' :
+            'video/mpeg');
+  my $w    = undef;
+  my $h    = undef;
+  my $size = undef;
+
+  return ($ct, $url, $title, $w, $h, $size);
+}
+
+
 sub munge_title($) {
   my ($title) = @_;
+
+  # Crud added by the sites themselves.
+
   $title =~ s/\s+/ /gsi;
   $title =~ s/^Youtube - //si;
   $title =~ s/- Youtube$//si;
@@ -824,27 +985,38 @@ sub munge_title($) {
   $title =~ s@: @ - @sg;    # colons, slashes not allowed.
   $title =~ s@[:/]@ @sg;
   $title =~ s@\s+$@@gs;
-  $title =~ s@&[^;]+;@@sg; # just lose entities
+  $title =~ s@&[^;]+;@@sg; # Fuck it, just omit all entities.
 
-  # Do some simple rewrites / clean-ups to dumb things people do.
-  $title =~ s/\s*[[(].*?\b(video|hd|hq)[])]\s*$//gsi; # yes I know it's a video
+  $title =~ s@\.(mp[34]|m4[auv]|mov|mqv|flv|wmv)\b@@si;
+
+  # Do some simple rewrites / clean-ups to dumb things people do
+  # when titling their videos.
+
+  $title =~ s/\s*[[(][^[(]*?\s*\b(video|hd|hq)[])]\s*$//gsi; # yes I know it's a video
   $title =~ s@\[audio\]@ @gsi;
-  $title =~ s/(official\s*)?(music\s*)?video\b//gsi;
-  $title =~ s/[-:\s]*SXSW[\d ]*Showcasing Artist\b//gsi;
+  $title =~ s/(official\s*)?(music\s*)?video(\s*clip)?\b//gsi;
+  $title =~ s/\s\(official\)//gsi;
+  $title =~ s/[-:\s]*SXSW[\d ]*Showcas(e|ing) Artist\b//gsi;
   $title =~ s/^.*\bPresents -+ //gsi;
   $title =~ s/ \| / - /gsi;
   $title =~ s/ - Director - .*$//si;
+  $title =~ s/\bHD\s*(720|1080)\s*[pi]\b//si;
+
   $title =~ s/'s\s+['"](.*)['"]/ - $1/gsi;        #  foo's "bar" => foo - bar
   $title =~ s/^([^"]+) ['"](.*)['"]/$1 - $2/gsi;  #  foo "bar" => foo - bar
-  $title =~ s/ -+ *-+ / - /gsi;
+
+  $title =~ s/ -+ *-+ / - /gsi;   # collapse dashes to a single dash
   $title =~ s/~/-/gsi;
-  $title =~ s/[- ]+$//gs;
+  $title =~ s/\s*\{\s*\}\s*$//gsi;	# lose trailing " { }"
+  $title =~ s/\s*\(\s*\)\s*$//gsi;	# lose trailing " ( )"
+
+  $title =~ s/[^][[:alnum:]!?()]+$//gsi;  # lose trailing non-alpha-or-paren
 
   $title =~ s/\s+/ /gs;
   $title =~ s/^\s+|\s+$//gs;
 
-  $title =~ s/\b([a-z])([a-z\d']+)\b/$1\L$2/gsi   # capitalize words
-    if ($title !~ m/[a-z]/s);                     # if it's all upper case
+  $title =~ s/\b([[:alpha:]])([[:alnum:]\']+)\b/$1\L$2/gsi   # capitalize words
+    if ($title !~ m/[[:lower:]]/s);                    # if it's all upper case
 
   return $title;
 }
@@ -867,6 +1039,12 @@ sub download_video_url($$$$$);
 sub download_video_url($$$$$) {
   my ($url, $title, $size_p, $cgi_p, $force_fmt) = @_;
 
+  # Add missing "http:"
+  $url = "http://$url" unless ($url =~ m@^https?://@si);
+
+  # Rewrite youtu.be URL shortener.
+  $url =~ s@^https?://([a-z]+\.)?youtu\.be/@http://youtube.com/v/@si;
+
   # Rewrite Vimeo URLs so that we get a page with the proper video title:
   # "/...#NNNNN" => "/NNNNN"
   $url =~ s@^(https?://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
@@ -876,12 +1054,14 @@ sub download_video_url($$$$$) {
   # Youtube /view_play_list?p= or /p/ URLs. 
   if ($url =~ m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
                 (?: view_play_list\?p= |
+                    p/ |
                     embed/p/ |
-                    p/
+                    playlist\?list=(?:PL)? |
+                    embed/videoseries\?list=(?:PL)?
                 )
                 ([^<>?&,]+) ($|&) @sx) {
     ($site, $id) = ($1, $2);
-    $url = "https?://www.$site.com/view_play_list?p=$id";
+    $url = "http://www.$site.com/view_play_list?p=$id";
     $playlist_p = 1;
 
   # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
@@ -894,14 +1074,25 @@ sub download_video_url($$$$$) {
                      )
                      ([^<>?&,'"]+) ($|&) @sx) {
     ($site, $id) = ($1, $2);
-    $url = "https?://www.$site.com/watch?v=$id";
+    $url = "http://www.$site.com/watch?v=$id";
 
   # Youtube "/verify_age" URLs.
   } elsif ($url =~ 
            m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
-	     .* next_url=([^&]+)@sx) {
+	     .* next_url=([^&]+)@sx ||
+           $url =~ m@^https?://(?:[a-z]+\.)?google\.com/
+                     .* service = (youtube)
+                     .* continue = ( http%3A [^?&]+)@sx ||
+           $url =~ m@^https?://(?:[a-z]+\.)?google\.com/
+                     .* service = (youtube)
+                     .* next = ( [^?&]+)@sx
+          ) {
     $site = $1;
     $url = url_unquote($2);
+    if ($url =~ m@&next=([^&]+)@s) {
+      $url = url_unquote($1);
+      $url =~ s@&.*$@@s;
+    }
     $url = "http://www.$site.com$url" if ($url =~ m@^/@s);
     return download_video_url ($url, $title, $size_p, $cgi_p, $force_fmt);
 
@@ -910,15 +1101,24 @@ sub download_video_url($$$$$) {
                      (?:user|profile).*\#.*/([^&/]+)@sx) {
     $site = $1;
     $id = url_unquote($2);
-    $url = "https?://www.$site.com/watch?v=$id";
+    $url = "http://www.$site.com/watch?v=$id";
     error ("unparsable user next_url: $url") unless $id;
 
-  # Vimeo /NNNNNN URLs.
-  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(\d+)@s) {
+  # Vimeo /NNNNNN URLs (and player.vimeo.com/video/NNNNNN)
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(?:video/)?(\d+)@s) {
     ($site, $id) = ($1, $2);
 
   # Vimeo /videos/NNNNNN URLs.
   } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+)@s) {
+    ($site, $id) = ($1, $2);
+
+  # Vimeo /channels/name/NNNNNN URLs.
+  } elsif ($url =~ 
+           m@^https?://(?:[a-z]+\.)?(vimeo)\.com/channels/[^/]+/(\d+)@s) {
+    ($site, $id) = ($1, $2);
+
+  # Vimeo /moogaloop.swf?clip_id=NNNNN
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*clip_id=(\d+)@s) {
     ($site, $id) = ($1, $2);
 
   } else {
@@ -973,18 +1173,33 @@ sub download_video_url($$$$$) {
 
   # Set the title unless it was specified on the command line with --title.
   #
-  $title = munge_title ($title2) unless defined ($title);
+  if (! defined($title)) {
+    $title = munge_title ($title2);
+
+    # Add the year to the title unless there's a year there already.
+    #
+    my $year = ($site eq 'youtube' ? get_youtube_year ($id) :
+                $site eq 'vimeo'   ? get_vimeo_year ($id)   : undef);
+    $year = undef
+      if ($year && $year == (localtime())[5]+1900); # Omit this year
+    $title .= " ($year)" 
+      if ($year && 
+          $title !~ m@\b$year\b@si &&  # already contains that year
+          $title !~ m@ \(\d{4}}\)@si); # already contains "(NNNN)"
+  }
 
   my $file = de_entify ("$title$suf");
   if    ($ct =~ m@/(x-)?flv$@si)  { $file .= '.flv';  }   # proper extensions
   elsif ($ct =~ m@/(x-)?webm$@si) { $file .= '.webm'; }
+  elsif ($ct =~ m@/quicktime$@si) { $file .= '.mov';  }
   else                            { $file .= '.mp4';  }
 
   if ($size_p) {
     if (! ($w && $h)) {
       ($w, $h, $size) = video_url_size ($title, $id, $url);
     }
-    my $ii = $id . ($size_p eq '1' ? '' : ":$size_p");  # for "--fmt all"
+    # for "--fmt all"
+    my $ii = $id . ($size_p eq '1' || $size_p eq '2' ? '' : ":$size_p");
 
     my $ss = ($size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
               $size > 1024 ? sprintf ("%dK", $size/1024) :
@@ -1009,7 +1224,7 @@ sub download_video_url($$$$$) {
 
     print STDERR "$progname: downloading \"$title\"\n" if ($verbose);
 
-    my ($http, $head, $body) = get_url ($url, undef, 0, $file);
+    my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file);
     check_http_status ($url, $http, 1);
 
     if (! -s $file) {
@@ -1037,40 +1252,58 @@ sub download_video_url($$$$$) {
 sub download_playlist($$$$$) {
   my ($id, $url, $title, $size_p, $cgi_p) = @_;
 
-  # max-results is ignored if it is >50, so this will fail on any
-  # playlist with more than 50 entries in it.
-  my $data_url = ("https?://gdata.youtube.com/feeds/api/playlists/$id?v=2" .
-                  "&max-results=50" .
-                  "&fields=title,entry(title,link)" .
-                  "&strict=true");
+  my $start = 0;
+  while (1) {
 
-  my ($http, $head, $body) = get_url ($data_url, undef, 0, undef);
-  check_http_status ($url, $http, 1);
+    # max-results is ignored if it is >50, so we get 50 at a time until
+    # we run out.
+    my $chunk = 50;
+    my $data_url = ("http://gdata.youtube.com/feeds/api/playlists/$id?v=2" .
+                    "&start-index=" . ($start+1) .
+                    "&max-results=$chunk" .
+                    "&fields=title,entry(title,link)" .
+                    "&safeSearch=none" .
+                    "&strict=true");
 
-  ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si)
-    unless $title;
-  $title = 'Untitled Playlist' unless $title;
+    my ($http, $head, $body) = get_url ($data_url, undef, undef, 0, undef);
+    check_http_status ($url, $http, 1);
 
-  $body =~ s@(<entry)@\001$1@gs;
-  my @entries = split(m/\001/, $body);
-  shift @entries;
-  my $i = 0;
-  print STDERR "$progname: playlist \"$title\" (" . ($#entries+1) .
-               " entries)\n"
-    if ($verbose > 1);
-  foreach my $entry (@entries) {
-    my ($t2) = ($entry =~ m@<title>\s*([^<>]+?)\s*</title>@si);
-    my ($u2, $id2) =
-      ($entry =~ m@<link.*?href=['"]
-                   (https?://[a-z.]+/
-                   (?: watch (?: \? | \#! ) v= | v/ | embed/ )
-                   ([^<>?&,'"]+))@sxi);
-    $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
-    download_video_url ($u2, $t2, $size_p, $cgi_p, undef);
+    ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si)
+      unless $title;
+    $title = 'Untitled Playlist' unless $title;
 
-    # With "--size", only get the size of the first video.
-    # With "--size --size", get them all.
+    $body =~ s@(<entry)@\001$1@gs;
+    my @entries = split(m/\001/, $body);
+    shift @entries;
+    print STDERR "$progname: playlist \"$title\" (" . ($#entries+1) .
+                 " entries)\n"
+      if ($verbose > 1 && $start == 0);
+
+    my $i = $start;
+    foreach my $entry (@entries) {
+      my ($t2) = ($entry =~ m@<title>\s*([^<>]+?)\s*</title>@si);
+      my ($u2, $id2) =
+        ($entry =~ m@<link.*?href=['"]
+                     (https?://[a-z.]+/
+                     (?: watch (?: \? | \#! ) v= | v/ | embed/ )
+                     ([^<>?&,'"]+))@sxi);
+      $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
+
+      eval {
+        $noerror = 1;
+        download_video_url ($u2, $t2, $size_p, $cgi_p, undef);
+        $noerror = 0;
+      };
+      print STDERR "$progname: $@" if $@;
+
+      # With "--size", only get the size of the first video.
+      # With "--size --size", get them all.
+      last if ($size_p == 1);
+    }
     last if ($size_p == 1);
+
+    $start += $chunk;
+    last unless @entries;
   }
 }
 
@@ -1093,8 +1326,8 @@ sub do_cgi() {
     $args = $2;
     # for cmd-line debugging
     $ENV{SCRIPT_NAME} = $1 unless defined($ENV{SCRIPT_NAME});
-    $ENV{PATH_INFO} = $1 if (!$ENV{PATH_INFO} && 
-                             $ENV{SCRIPT_NAME} =~ m@^.*/(.*)@s);
+#    $ENV{PATH_INFO} = $1 if (!$ENV{PATH_INFO} && 
+#                             $ENV{SCRIPT_NAME} =~ m@^.*/(.*)@s);
   }
 
   my ($url, $redir, $proxy);
@@ -1115,7 +1348,7 @@ sub do_cgi() {
     my $name = $ENV{PATH_INFO} || '';
     $name =~ s@^/@@s;
     $name = ($redir || $proxy) unless $name;
-    $name =~ s@"@%22@gs;
+    $name =~ s@\"@%22@gs;
     if ($redir) {
       # Return a redirect to the underlying video URL.
       print STDOUT ("Content-Type: text/html\n" .
@@ -1127,7 +1360,7 @@ sub do_cgi() {
     } else {
       # Proxy the data, so that we can feed it a non-browser user agent.
       print STDOUT "Content-Disposition: attachment; filename=\"$name\"\n";
-      get_url ($proxy, undef, 0, '-');
+      get_url ($proxy, undef, undef, 0, '-');
     }
 
   } elsif ($url) {
@@ -1138,24 +1371,6 @@ sub do_cgi() {
   } else {
     error ("no URL specified for CGI");
   }
-}
-
-
-sub error($) {
-  my ($err) = @_;
-
-  if (defined ($ENV{HTTP_HOST})) {
-    $err =~ s/&/&amp;/gs;
-    $err =~ s/</&lt;/gs;
-    $err =~ s/>/&gt;/gs;
-    print STDOUT ("Content-Type: text/html\n" .
-                  "Status: 500\n" .
-                  "\n" .
-                  "<P><B>ERROR:</B> " . $err . "<P>\n");
-  } else {
-    print STDERR "$progname: $err\n";
-  }
-  exit 1;
 }
 
 
@@ -1192,8 +1407,15 @@ sub main() {
     elsif (m/^--?fmt$/)    { $fmt = shift @ARGV; }
     elsif (m/^-./)         { usage; }
     else { 
+      s@^//@http://@s;
       error ("not a Youtube or Vimeo URL: $_")
-        unless (m@^https?://([a-z]+\.)?(youtube(-nocookie)?|vimeo)\.com/@s);
+        unless (m@^(https?://)?
+                   ([a-z]+\.)?
+                   ( youtube(-nocookie)?\.com/ |
+                     youtu\.be/ |
+                     vimeo\.com/ |
+                     google\.com/ .* service=youtube
+                   )@six);
       my @P = ($title, $fmt, $_);
       push @urls, \@P;
       $title = undef;
