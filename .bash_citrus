@@ -43,6 +43,10 @@ e AWS3left="ec2-184-169-220-144.us-west-1.compute.amazonaws.com"
 e AWS4left="ec2-184-169-198-172.us-west-1.compute.amazonaws.com"
 
 e AWS1spof="ec2-184-169-238-27.us-west-1.compute.amazonaws.com"
+e AWS2spof="ec2-50-18-97-27.us-west-1.compute.amazonaws.com"
+
+e AWS1sprint="ec2-184-169-226-183.us-west-1.compute.amazonaws.com"
+e AWS1hotfix="ec2-184-169-232-56.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
@@ -70,6 +74,10 @@ a aws1stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1stage}'
 a aws2stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2stage}'
 
 a aws1spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1spof}'
+a aws2spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2spof}'
+
+a aws1sprint='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1sprint}'
+a aws1hotfix='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1hotfix}'
 
 a aws1odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1odd}'
 a aws2odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2odd}'
