@@ -25,6 +25,7 @@ export BASH_ENV="~/.bashrc"
 [ -f $HOME/.bash_citrus ] && source $HOME/.bash_citrus
 [ -f $HOME/.bash_func ] && source $HOME/.bash_func
 [ -f $HOME/.bash_func_grails -a -f $HOME/.grails ] && source $HOME/.bash_func_grails
-
+[ -f $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
+[ -f $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
 # EOF
