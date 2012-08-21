@@ -45,8 +45,8 @@ e AWS4left="ec2-184-169-198-172.us-west-1.compute.amazonaws.com"
 e AWS1spof="ec2-184-169-238-27.us-west-1.compute.amazonaws.com"
 e AWS2spof="ec2-50-18-97-27.us-west-1.compute.amazonaws.com"
 
-e AWS1sprint="ec2-184-169-226-183.us-west-1.compute.amazonaws.com"
-e AWS1hotfix="ec2-184-169-232-56.us-west-1.compute.amazonaws.com"
+e AWS1hotfix="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
+e AWS1sprint="ec2-204-236-186-220.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
@@ -94,6 +94,9 @@ a aws2left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2left}'
 a aws3left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3left}'
 a aws4left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4left}'
 
+
+## remap LL
+a ll="/bin/ls -Fla"
 
 #################################
 # Run gradle as a daemon so as to avoid startup/teardown costs
