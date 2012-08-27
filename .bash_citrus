@@ -19,7 +19,7 @@ e AWS3="184.72.50.231"
 e AWS4="ec2-50-18-230-44.us-west-1.compute.amazonaws.com"
 e AWSIMG="184.169.163.163"
 
-e AWS1stage="ec2-184-169-235-212.us-west-1.compute.amazonaws.com"
+e AWS1stage="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
 e AWS2stage="ec2-50-18-132-176.us-west-1.compute.amazonaws.com"
 
 e AWS1_G2='ec2-184-72-29-163.us-west-1.compute.amazonaws.com'
@@ -43,7 +43,7 @@ e AWS3left="ec2-184-169-220-144.us-west-1.compute.amazonaws.com"
 e AWS4left="ec2-184-169-198-172.us-west-1.compute.amazonaws.com"
 
 e AWS1spof="ec2-184-169-238-27.us-west-1.compute.amazonaws.com"
-e AWS2spof="ec2-50-18-97-27.us-west-1.compute.amazonaws.com"
+e AWS2spof="ec2-50-18-228-21.us-west-1.compute.amazonaws.com"
 
 e AWS1hotfix="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
 e AWS1sprint="ec2-204-236-186-220.us-west-1.compute.amazonaws.com"
