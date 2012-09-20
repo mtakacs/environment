@@ -42,8 +42,8 @@ e AWS2left="ec2-184-169-241-67.us-west-1.compute.amazonaws.com"
 e AWS3left="ec2-184-169-220-144.us-west-1.compute.amazonaws.com"
 e AWS4left="ec2-184-169-198-172.us-west-1.compute.amazonaws.com"
 
-e AWS1spof="ec2-50-18-235-87.us-west-1.compute.amazonaws.com"
-e AWS2spof="ec2-50-18-32-107.us-west-1.compute.amazonaws.com"
+e AWS1spof="ec2-50-18-32-107.us-west-1.compute.amazonaws.com"
+e AWS2spof="ec2-50-18-235-87.us-west-1.compute.amazonaws.com"
 
 e AWS1hotfix="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
 e AWS1sprint="ec2-204-236-186-220.us-west-1.compute.amazonaws.com"
