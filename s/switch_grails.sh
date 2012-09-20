@@ -7,9 +7,9 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 DIR=/usr/local
-GRAILS_NEW=grails-2.0.3
+GRAILS_NEW=grails-2.1.1
 GROOVY_NEW=groovy-1.8.6
-GRAILS_OLD=grails-1.3.7
+GRAILS_OLD=grails-1.3.9
 GROOVY_OLD=groovy-1.7.10
 
 GRAILS_CURRENT=`readlink ${DIR}/grails`
@@ -40,12 +40,12 @@ purge_grails_cache ()
     rm -rf ${HOME}/.grails ${HOME}/.ivy2
 }
 
-case "$1" in 
-    1.3.7) link_old
+case "$1" in
+    1.3.9) link_old
     ;;
-    2.0) link_new
+    2.1) link_new
     ;;
-    2.0.3) link_new
+    2.1.0) link_new
     ;;
     *)
         if [ "${GRAILS_CURRENT}" == "${DIR}/${GRAILS_NEW}" ]
