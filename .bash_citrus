@@ -10,43 +10,17 @@ alias e=export
 # exports
 #################################
 
-#e AWS1="ec2-50-18-80-157.us-west-1.compute.amazonaws.com"
-#e AWS2="ec2-50-18-68-122.us-west-1.compute.amazonaws.com
 e BLOG="50.18.123.151"
 e AWS1="50.18.127.91"
-e AWS2="50.18.127.111"
-e AWS3="184.72.50.231"
-e AWS4="ec2-50-18-230-44.us-west-1.compute.amazonaws.com"
 e AWSIMG="184.169.163.163"
 
 e AWS1stage="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
 e AWS2stage="ec2-50-18-132-176.us-west-1.compute.amazonaws.com"
 
-e AWS1_G2='ec2-184-72-29-163.us-west-1.compute.amazonaws.com'
-e AWS2_G2='ec2-50-18-228-246.us-west-1.compute.amazonaws.com'
-e AWS3_G2='ec2-50-18-245-182.us-west-1.compute.amazonaws.com'
-e AWS4_G2='ec2-50-18-150-175.us-west-1.compute.amazonaws.com'
-
-e AWS1odd="ec2-184-169-194-125.us-west-1.compute.amazonaws.com"
-e AWS2odd="ec2-184-169-215-157.us-west-1.compute.amazonaws.com"
-e AWS3odd="ec2-204-236-174-241.us-west-1.compute.amazonaws.com"
-e AWS4odd="ec2-50-18-96-214.us-west-1.compute.amazonaws.com"
-
-e AWS1even="ec2-50-18-24-5.us-west-1.compute.amazonaws.com"
-e AWS2even="ec2-184-169-199-167.us-west-1.compute.amazonaws.com"
-e AWS3even="ec2-50-18-21-37.us-west-1.compute.amazonaws.com"
-e AWS4even="ec2-184-169-200-243.us-west-1.compute.amazonaws.com"
-
-e AWS1left="ec2-184-169-236-184.us-west-1.compute.amazonaws.com"
-e AWS2left="ec2-184-169-241-67.us-west-1.compute.amazonaws.com"
-e AWS3left="ec2-184-169-220-144.us-west-1.compute.amazonaws.com"
-e AWS4left="ec2-184-169-198-172.us-west-1.compute.amazonaws.com"
+e AWS1test="ec2-50-18-1-144.us-west-1.compute.amazonaws.com"
 
 e AWS1spof="ec2-50-18-32-107.us-west-1.compute.amazonaws.com"
 e AWS2spof="ec2-50-18-235-87.us-west-1.compute.amazonaws.com"
-
-e AWS1hotfix="ec2-204-236-147-29.us-west-1.compute.amazonaws.com"
-e AWS1sprint="ec2-204-236-186-220.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
@@ -54,20 +28,8 @@ e AWS1sprint="ec2-204-236-186-220.us-west-1.compute.amazonaws.com"
 
 a bushel='ssh -l root bushel'
 a blog='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${BLOG}'
-a aws1_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1_G1}'
-a aws2_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2_G1}'
-a aws3_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3_G1}'
-a aws4_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4_G1}'
-a aws5_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-169-248-158.us-west-1.compute.amazonaws.com'
-a aws6_g1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-169-243-209.us-west-1.compute.amazonaws.com'
-#a aws7='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-143-78.us-west-1.compute.amazonaws.com'
-#a aws8='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-184-72-14-109.us-west-1.compute.amazonaws.com'
-#a aws9='ssh -l ubuntu -i ~/.ssh/citruslane.pem ec2-204-236-171-87.us-west-1.compute.amazonaws.com'
 
 a aws1='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1}'
-a aws2='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2}'
-a aws3='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3}'
-a aws4='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4}'
 a awsimg='ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSIMG}'
 
 a aws1stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1stage}'
@@ -76,24 +38,7 @@ a aws2stage='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2stage}'
 a aws1spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1spof}'
 a aws2spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2spof}'
 
-a aws1sprint='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1sprint}'
-a aws1hotfix='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1hotfix}'
-
-a aws1odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1odd}'
-a aws2odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2odd}'
-a aws3odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3odd}'
-a aws4odd='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4odd}'
-
-a aws1even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1even}'
-a aws2even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2even}'
-a aws3even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3even}'
-a aws4even='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4even}'
-
-a aws1left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1left}'
-a aws2left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2left}'
-a aws3left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS3left}'
-a aws4left='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS4left}'
-
+a aws1test='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1test}'
 
 ## remap LL
 a ll="/bin/ls -Fla"
