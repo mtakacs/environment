@@ -24,6 +24,8 @@ e AWS2spof="ec2-50-18-235-87.us-west-1.compute.amazonaws.com"
 
 e AWS1billit="ec2-184-169-250-67.us-west-1.compute.amazonaws.com"
 
+e AWS1hpresponsive="ec2-184-169-204-125.us-west-1.compute.amazonaws.com"
+
 #################################
 # convenience destinations
 #################################
@@ -43,6 +45,9 @@ a aws2spof='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS2spof}'
 a aws1test='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1test}'
 
 a aws1billit='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1billit}'
+
+a aws1hpresponsive='ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1hpresponsive}'
+
 
 ## remap LL
 a ll="/bin/ls -Fla"
