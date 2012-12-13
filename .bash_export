@@ -256,7 +256,6 @@ path=""
 # my stuff
 path="$path $HOME/s"
 
-
 path="$path /usr/bin"
 path="$path /bin"
 path="$path /usr/sbin"
@@ -269,12 +268,7 @@ path="$path /opt/local/bin"
 path="$path /opt/local/sbin"
 
 path="$path /opt/subversion/bin"
-path="$path ${ANT_HOME}/bin"
-path="$path ${JAVA_HOME}/bin"
-path="$path ${GRAILS_HOME}/bin"
 path="$path ${GANT_HOME}/bin"
-path="$path ${GROOVY_HOME}/bin"
-path="$path ${GRADLE_HOME}/bin"
 path="$path ${MAVEN_HOME}/bin"
 path="$path /usr/local/perl/bin"
 path="$path /usr/local/bdb/bin"
