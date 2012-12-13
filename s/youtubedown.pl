@@ -44,7 +44,7 @@ use strict;
 use Socket;
 
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.139 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.142 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -216,6 +216,7 @@ sub get_url_1($;$$$$$) {
   my $out;
   if ($to_file) {
     open ($out, ">$to_file") || error ("$to_file: $!");
+    binmode ($out);
   }
 
   if ($to_file && $to_file eq '-') {
@@ -673,10 +674,11 @@ sub scrape_youtube_url_2($$$$$$$) {
   foreach (split /,/, $urlmap) {
     # Format used to be: "N|url,N|url,N|url"
     # Now it is: "url=...&quality=hd720&fallback_host=...&type=...&itag=N"
-    my ($k, $v, $e);
+    my ($k, $v, $e, $sig);
     if (m/^\d+\|/s) {
       ($k, $v) = m/^(.*?)\|(.*)$/s;
     } elsif (m/^[a-z_]+=/s) {
+      ($sig) = m/\bsig=([^&]+)/s;
       ($k) = m/\bitag=(\d+)/s;
       ($v) = m/\burl=([^&]+)/s;
       $v = url_unquote($v) if ($v);
@@ -693,6 +695,9 @@ sub scrape_youtube_url_2($$$$$$$) {
 
     my $s = $fmtsizes{$k};
     $s = '?x?' unless $s;
+
+    # As of 27-Sep-2012, the download URLs don't work without this.
+    $v .= "&signature=$sig" if $sig;
 
     $urlmap{$k} = $v;
     $urlct{$k} = $ct;
@@ -1065,7 +1070,8 @@ sub download_video_url($$$$$) {
     $playlist_p = 1;
 
   # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
-  } elsif ($url =~ m@^https?:// (?:[a-z]+\.)? (youtube) (?:-nocookie)? \.com/
+  } elsif ($url =~ m@^https?:// (?:[a-z]+\.)?
+                     (youtube) (?:-nocookie)? (?:\.googleapis)? \.com/
                      (?: (?: watch )? (?: \? | \#! ) v= |
                          v/ |
                          embed/ |
@@ -1243,7 +1249,7 @@ sub download_video_url($$$$$) {
                 $size > 1024 ? sprintf ("%dK", $size/1024) :
                 "$size bytes");
       $ss .= ", $w x $h" if ($w && $h);
-      print STDERR "$progname: wrote \"$file\", $ss\n";
+      print STDERR "$progname: wrote       \"$file\", $ss\n";
     }
   }
 }
@@ -1414,7 +1420,8 @@ sub main() {
                    ( youtube(-nocookie)?\.com/ |
                      youtu\.be/ |
                      vimeo\.com/ |
-                     google\.com/ .* service=youtube
+                     google\.com/ .* service=youtube |
+                     youtube\.googleapis\.com
                    )@six);
       my @P = ($title, $fmt, $_);
       push @urls, \@P;
