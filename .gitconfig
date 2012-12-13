@@ -14,7 +14,7 @@
 [log]
 	decorate = short
 [color]
-	ui = auto
+	ui = true
 	interactive = auto
 [page]
 	status = true
@@ -24,17 +24,25 @@
 	stat = status -s
 	ci = commit
 	co = checkout
+    cp = cherry-pick
 	staged = diff --cached
 	oneline = log --oneline
 	amend = commit --amend
 	branches = branch -av
 	unstage = reset HEAD --
-	last = log -1 HEAD
+	last = log --oneline -n 1 
 	dirty = branch --no-merged
     relnotes = shortlog --no-merges v1.0.9...HEAD
     history = log --follow
+    hist = log --oneline --graph --decorate --all
 [merge]
 	tool = opendiff
 [github]
 	user = mtakacs
 	token = 5b253a2d988faf8a9958fa24e739b35
+[difftool "sourcetree"]
+	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
+	path = 
+[mergetool "sourcetree"]
+	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	trustExitCode = true
