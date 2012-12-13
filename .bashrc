@@ -1,3 +1,4 @@
+#!/bin/bash
 #  -*- shell-script -*-
 #######################################################
 # ~/.bashrc: executed by bash(1) for non-login shells.
@@ -29,3 +30,6 @@ export BASH_ENV="~/.bashrc"
 [ -f $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
 # EOF
+
+#THIS MUST BE AT THE END OF THE FILE FOR GVM TO WORK!!!
+[[ -s "/Users/tak/.gvm/bin/gvm-init.sh" && ! $(which gvm-init.sh) ]] && source "/Users/tak/.gvm/bin/gvm-init.sh"
