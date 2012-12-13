@@ -1,3 +1,4 @@
+#!/bin/bash
 #  -*- shell-script -*-
 #######################################################
 # $Id: .bash_yahoo,v 1.36 2009/04/02 16:36:44 tak Exp $
@@ -8,19 +9,18 @@
 [ -f /home/y/etc/yvm.bashrc ] && source /home/y/etc/yvm.bashrc
 
 alias a=alias
-alias e=export
 
 #################################
 # Source Code management
 #################################
-e CVS_RSH="ssh"
-e SVN_SSH="yssh"
-e RSYNC_RSH="ssh"
-e SSH_ASKPASS="1"
-e CVSROOT="vault.yahoo.com:/CVSROOT"
-e SVNROOT="svn+ssh://tak@svn.corp.yahoo.com/yahoo"
+export CVS_RSH="ssh"
+export SVN_SSH="yssh"
+export RSYNC_RSH="ssh"
+export SSH_ASKPASS="1"
+export CVSROOT="vault.yahoo.com:/CVSROOT"
+export SVNROOT="svn+ssh://tak@svn.corp.yahoo.com/yahoo"
 if [ -f "/usr/local/bin/yssh-find-agent" ]; then
-    e SSH_AUTH_SOCK=`/usr/local/bin/yssh-find-agent`
+    export SSH_AUTH_SOCK=`/usr/local/bin/yssh-find-agent`
 fi
 
 #################################
@@ -45,7 +45,7 @@ path="$path /opt/zimbra/bin"
 for p in $path; do
   if [ -d $p ]; then
 #    echo "PATH: $p added";
-    e PATH=$p:${PATH}
+    export PATH=$p:${PATH}
   fi
 done
 unset path p
@@ -53,15 +53,15 @@ unset path p
 #################################
 # Perforce (Zimbra)
 #################################
-#e P4ROOT="/home/p4root"
-#e P4PORT="1666"
-#e P4CLIENT="bussleptthese"
-#e P4CLIENTZIMBRA="khendrikson-tak" # convenience alias
-#e P4CLIENTYCAL="ycal"        # convenience alias
-#e P4CLIENTHTML="publichtml"  # convenience alias
-#e P4CLIENT=${P4CLIENTZIMBRA}
-#e P4CONFIG=".p4config-zimbra-rhel"
-e P4CONFIG=".p4config"
+#export P4ROOT="/home/p4root"
+#export P4PORT="1666"
+#export P4CLIENT="bussleptthese"
+#export P4CLIENTZIMBRA="khendrikson-tak" # convenience alias
+#export P4CLIENTYCAL="ycal"        # convenience alias
+#export P4CLIENTHTML="publichtml"  # convenience alias
+#export P4CLIENT=${P4CLIENTZIMBRA}
+#export P4CONFIG=".p4config-zimbra-rhel"
+#export P4CONFIG=".p4config"
 
 #################################
 # Are we in a chroot/yroot?
@@ -75,30 +75,31 @@ fi
 #################################
 # Are we root?
 #################################
-e CORPNET=`/bin/hostname | grep corp.yahoo`
+export CORPNET=`/bin/hostname | grep corp.yahoo`
 if [ "x$CORPNET" != "x" ]; then
     # do nothing
     foo=bar
 else
     # echo "not on CORPNET"
-    e UIDCOLOR=${PCOLOR_YELLOW}
+    export UIDCOLOR=${PCOLOR_YELLOW}
 fi
 
 # Prepend the YROOT alert to the existing Prompt
 if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
-    e PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+    export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
 then
-    e PS1="${prompt_yroot}${PS1}"
+    export PS1="${prompt_yroot}${PS1}"
 fi
 
 #################################
 # CandyGram stuff
 #################################
 
-e ANT_HOME="/home/y/bin/ant"
-#e PYTHON_HOME="/usr/local/bin"
-e PYTHON_HOME="/home/y/bin"
-#e CATALINA_HOME="/home/y/etc/tomcat"
+export ANT_HOME="/home/y/bin/ant"
+#export PYTHON_HOME="/usr/local/bin"
+export PYTHON_HOME="/home/y/bin"
+#export CATALINA_HOME="/home/y/etc/tomcat"
+
 a pookie='sudo mount -t nfs -o nodev,-3,-U laborclear:/home/tak/dev/yahoo /tmp/pookie'
 a shpants="cd ~/dev/yahoo/properties/ymail/dclient/src/site/intl/templates/generic_intl/all/css"
 a dclient="cd ~/dev/yahoo/ymail/dclient/trunk/src"
@@ -110,13 +111,13 @@ a neoigor="yinst restore -igor -igor_tag mail.neo.app.head; yinst set openmail_y
 #################################
 # convenience exports
 #################################
-e YBR="-br current -br stable -br test -br nightly"
-e YWS_VERSION="-H 'x-ysws-version: 0.5'"
+export YBR="-br current -br stable -br test -br nightly"
+export YWS_VERSION="-H 'x-ysws-version: 0.5'"
 
 #################################
 # Editor override
 #################################
-[ -f /home/y/bin/emacs ] && e EDITOR="/home/y/bin/emacs -q"
+[ -f /home/y/bin/emacs ] && export EDITOR="/home/y/bin/emacs -q"
 
 #################################
 # Java path
@@ -125,12 +126,11 @@ jpath="/usr/local /home/y/libexec/java /home/y/libexec32/jdk1.4.2 /usr/local/jav
 for p in $jpath; do
   if [ -e $p ]; then
     #echo "PATH: $p added";
-    e JAVA_HOME=$p
+    export JAVA_HOME=$p
   fi
 done
 unset jpath p
-e JAVA_PATH="${JAVA_HOME}"
-
+export JAVA_PATH="${JAVA_HOME}"
 
 #################################
 # convenience aliases
@@ -144,10 +144,10 @@ fi
 #a ypackage="yinst packages -br test -br current -br stable \"*$1*\""
 
 # a build tag Im using as a stable snapshot
-e ELECTRO="PIM_BUILD_ELECTRO_2005_01_12"
+export ELECTRO="PIM_BUILD_ELECTRO_2005_01_12"
 
 # Buildicus Option
-e PACKAGE_BUILDTYPE=link
+export PACKAGE_BUILDTYPE=link
 
 # helper aliases
 #a rl="tail -f /home/reminders/logs/r_send.log"
@@ -235,12 +235,12 @@ a neodev='ssh -l tak norbeginform-vm1.corp.yahoo.com'
 a om1='ssh -l tak om0001.mail.mud.yahoo.com'
 a om2='ssh -l tak om0002.mail.mud.yahoo.com'
 
-e YMDT_HOST="laborclear-vm1.corp.yahoo.com"
+export YMDT_HOST="laborclear-vm1.corp.yahoo.com"
 
 #################################
 ## CDPATH
 #################################
-e CDPATH=".:~"
+export CDPATH=".:~"
 
 path=""
 path="$path ${HOME}/dev/yahoo/ymail/neo/"
@@ -252,7 +252,7 @@ path="$path /home/y/share/htdocs/"
 for p in $path; do
   if [ -d $p ]; then
     # echo "CDPATH: $p added";
-    e CDPATH=${CDPATH}:$p
+    export CDPATH=${CDPATH}:$p
   fi
 done
 unset path p

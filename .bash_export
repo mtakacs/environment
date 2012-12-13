@@ -1,3 +1,4 @@
+#!/bin/sh
 #  -*- shell-script -*-
 #######################################################
 # $Id: .bash_export,v 1.18 2009/02/23 22:47:03 tak Exp $
@@ -6,8 +7,6 @@
 #######################################################
 # Bash Shell adjustments
 #######################################################
-
-alias e=export
 
 #################################
 # Adjust the history settings
@@ -18,21 +17,20 @@ alias e=export
 # commands in the history file.  Who really needs to repeat the
 # shutdown(8) command accidentally from your command history?
 HISTIGNORE='\&:fg:bg:ls:pwd:cd ..:cd ~-:cd -:cd:jobs:set -x:ls -l:ls -l:ll'
-e HISTIGNORE=${HISTIGNORE}':%1:%2:popd:top:pine:mutt:shutdown*'
+export HISTIGNORE=${HISTIGNORE}':%1:%2:popd:top:pine:mutt:shutdown*'
 
 # Disk is cheap. Computer Memory is cheap. My memory isn't! Keep a
 # lot of history by default. 10K lines seems to go back about 6
 # months, and captures all of the wacky one-off shell scripts that
 # I might want again later.
 # for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
-e HISTSIZE=10000
-e HISTFILESIZE=${HISTSIZE}
+export HISTSIZE=10000
+export HISTFILESIZE=${HISTSIZE}
 
 # Reduce redundancy in the history file
 # don't put duplicate lines in the history. See bash(1) for more options
 # ... or force ignoredups and ignorespace
-e HISTCONTROL=ignoredups:ignorespace
-
+export HISTCONTROL=ignoredups:ignorespace
 
 #################################
 # make less more friendly for non-text input files, see lesspipe(1)
@@ -87,12 +85,12 @@ esac
 
 if [ -n "$force_color_prompt" ]; then
     if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
-	# We have color support; assume it's compliant with Ecma-48
-	# (ISO/IEC-6429). (Lack of such support is extremely rare, and such
-	# a case would tend to support setf rather than setaf.)
-	color_prompt=yes
+    # We have color support; assume it's compliant with Ecma-48
+    # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+    # a case would tend to support setf rather than setaf.)
+      color_prompt=yes
     else
-	color_prompt=
+      color_prompt=
     fi
 fi
 
@@ -121,10 +119,10 @@ function prompt_command {
 
 ### color definitions
 # BSD color
-# e CLICOLOR=1
-# e LSCOLORS="Exfxcxdxbxegedabagacad"
+# export CLICOLOR=1
+# export LSCOLORS="Exfxcxdxbxegedabagacad"
 # gnuls color, should use dircolor
-# e LS_COLORS="ex=35:di=36:ln=31:*.c=32:*.cpp=32:*.cc=32:*.cxx=32:*.h=33:*.hh=33:*.m=32"
+# export LS_COLORS="ex=35:di=36:ln=31:*.c=32:*.cpp=32:*.cc=32:*.cxx=32:*.h=33:*.hh=33:*.m=32"
 
 PCOLOR_OFF="\[\033[00m\]"
 PCOLOR_BLACK="\[\033[01;30m\]"
@@ -138,21 +136,37 @@ PCOLOR_WHITE="\[\033[01;37m\]"
 PCOLOR_DEFAULT="\[\033[01;38m\]"
 
 #################################
+# Are in a git root? show branch
+# @web http://www.jroller.com/melix/entry/my_git_tweaks_for_daily
+#################################
+
+## As an example
+simple_git_branch() {
+  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ \1/'
+}
+
+parse_git_branch() {
+  export repo=`git remote show -n origin 2> /dev/null | sed -e '/^  [^F]/d' -e'/remote/d' -e 's/.*\/\(.*\).git/\1/'`
+  export branch=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
+  echo "(${repo}::${branch})"
+}
+
+#################################
 # Are we root?
 #################################
 if [ `/usr/bin/whoami` = 'root' ]
 then
-  e UIDCOLOR=${PCOLOR_RED}
+  export UIDCOLOR=${PCOLOR_RED}
 else
-  e UIDCOLOR=${PCOLOR_GREEN}
+  export UIDCOLOR=${PCOLOR_GREEN}
 fi
 
 # Do not set PS1 for dumb terminals or emacs
 if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
 then
-    e PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+    export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(parse_git_branch)> ${PCOLOR_OFF}"
 else
-    e PS1="\u@\h:\W> "
+    export PS1="\u@\h:\W\$(parse_git_branch)> "
 fi
 
 #################################
@@ -163,8 +177,8 @@ FIGNORE=".o:~:.bak:.orig:.bat"
 #################################
 # Misc Settings
 #################################
-e EDITOR=vi
-[ -f /usr/bin/emacs ] && e EDITOR="/usr/bin/emacs -q"
+export EDITOR=vi
+[ -f /usr/bin/emacs ] && export EDITOR="/usr/bin/emacs -q"
 
 #################################
 # Output commands to set the
@@ -190,52 +204,32 @@ fi
 # you might set SVNPROTO to "svn+ssh://" and SVNROOT to
 # "svn.mydomain.tld/var/svnroot".
 #################################
-#e SVNPROTO=file://
-#e SVNROOT=/var/svnroot
-
-#################################
-# Oracle HOME
-#################################
-#e ORACLE_BASE="${MOJO_TOOLS}/linux/oracle"
-#e ORACLE_HOME="${ORACLE_BASE}/client"
-
-#e DBUSER="tak"
-#e DBPASSWORD="tak"
-
-#################################
-# LD_LIBRARY_PATH
-#################################
-
-#e LD_LIBRARY_PATH="${ORACLE_HOME}/lib"
-#e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/BerkeleyDB.4.2/lib"
-#e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/bdb/lib"
-#e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/openldap/lib"
-#e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/local/perl/lib"
-#e LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
-#e LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:/usr/lib"
+#export SVNPROTO=file://
+#export SVNROOT=/var/svnroot
 
 #################################
 # GRAILS, GROOVY, GRADLE HOME
 #################################
 
-e GRAILS_HOME="/usr/local/grails"
-e GRADLE_HOME="/usr/local/gradle"
-e GROOVY_HOME="/usr/local/groovy"
-e MAVEN_HOME="/usr/local/maven"
+export GRAILS_HOME="/usr/local/grails"
+export GRADLE_HOME="/usr/local/gradle"
+export GANT_HOME="/usr/local/gant"
+export GROOVY_HOME="/usr/local/groovy"
+export MAVEN_HOME="/usr/local/maven"
 
 #e CATALINA_HOME="/usr/local/apache-tomcat-6.0.32"
-[ -e /usr/local/tomcat6 ] && e CATALINA_HOME="/usr/local/tomcat6"
-[ -e /usr/local/tomcat7 ] && e CATALINA_HOME="/usr/local/tomcat7"
+[ -e /usr/local/tomcat6 ] && export CATALINA_HOME="/usr/local/tomcat6"
+[ -e /usr/local/tomcat7 ] && export CATALINA_HOME="/usr/local/tomcat7"
 
 #################################
 # JAVA HOME
 # Usually better to let this get set on it's own or in .bash_hostname
 #################################
 
-#e JAVA_HOME="/usr/java/jdk1.3.1"
-#e JAVA_HOME="/usr/local/jdk1.4.2/jdk"
-#e JAVA_HOME="/usr/local/jdk1.5.0_01"
-#e JAVA_HOME="/usr/local"
+#export JAVA_HOME="/usr/java/jdk1.3.1"
+#export JAVA_HOME="/usr/local/jdk1.4.2/jdk"
+#export JAVA_HOME="/usr/local/jdk1.5.0_01"
+#export JAVA_HOME="/usr/local"
 
 #jpath="/usr/local/java-1.5.0 /home/y/libexec/jdk1.5.0 /usr /usr/local"
 #for p in $jpath; do
@@ -243,24 +237,19 @@ e MAVEN_HOME="/usr/local/maven"
 #    #echo "PATH: $p added";
 #    if [ -e $p/bin/java ]; then
 #        #echo "PATH: java found at $p";
-#        e JAVA_HOME=$p
+#        export JAVA_HOME=$p
 #    fi
 #  fi
 #done
 #unset jpath p
-#e JAVA_PATH="${JAVA_HOME}"
-
-#################################
-# LDAP
-#################################
-#e LDAPDIR="${SRC_OPDDIR}/jsrc/jars"
+#export JAVA_PATH="${JAVA_HOME}"
 
 #################################
 # PATH Foo
 #################################
 
 # bootstrap
-e PATH="$HOME/bin"
+export PATH="$HOME/bin"
 
 path=""
 
@@ -283,6 +272,7 @@ path="$path /opt/subversion/bin"
 path="$path ${ANT_HOME}/bin"
 path="$path ${JAVA_HOME}/bin"
 path="$path ${GRAILS_HOME}/bin"
+path="$path ${GANT_HOME}/bin"
 path="$path ${GROOVY_HOME}/bin"
 path="$path ${GRADLE_HOME}/bin"
 path="$path ${MAVEN_HOME}/bin"
@@ -301,7 +291,7 @@ path="$path ."
 for p in $path; do
   if [ -d $p ]; then
 #    echo "PATH: $p added";
-    e PATH=${PATH}:$p
+    export PATH=${PATH}:$p
   fi
 done
 unset path p
@@ -377,14 +367,14 @@ classes="$classes ${SRC_OPDDIR}/jsrc/classes"
 for class in $classes; do
 #    echo "CLASS = $class"
     if [ -d $class ]; then
-	CLASSPATH=$class:$CLASSPATH
+      CLASSPATH=$class:$CLASSPATH
 #	echo "CLASS = $class added to CLASSPATH"
     fi
 done
 
 unset class classes
 
-e CLASSPATH
+export CLASSPATH
 
 #############################################################################
 # eof

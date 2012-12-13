@@ -1,3 +1,4 @@
+#!/bin/bash
 #  -*- shell-script -*-
 #######################################################
 # $Id: .bash_misc,v 1.4 2005/10/26 02:54:36 tak Exp $
@@ -47,7 +48,6 @@ shopt -s checkhash
 # the values of LINES and COLUMNS.
 #################################
 shopt -s checkwinsize
-
 
 #################################
 # shell: Set umask

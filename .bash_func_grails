@@ -1,3 +1,4 @@
+#!/bin/bash
 #######################################################
 # http://grails.org/Grails+Bash+Completion+Script
 #######################################################
@@ -40,9 +41,9 @@ _grails_comp(){
             SCRIPT_DIRS="$SCRIPT_DIRS $PLUGIN_DIR"
             done
         fi
- 
+
         opts=$(_get_scripts)
-    
+
         case "${prev}" in
             generate-all)
                 local classes=$(_get_domain_classes)
@@ -61,7 +62,7 @@ _grails_comp(){
                 ;;
             test-app)
                 local test_classes=$(_get_tests)
-                COMPREPLY=( $(compgen -W "${test_classes}" -- ${cur}) ) 
+                COMPREPLY=( $(compgen -W "${test_classes}" -- ${cur}) )
                 return 0
                 ;;
             install-plugin)
@@ -86,13 +87,13 @@ _grails_comp(){
             *)
             ;;
         esac
-    
+
         if [[ "${opts}" =~ "${prev}" ]]; then
             COMPREPLY=( $(compgen -f) )
             return 0
         fi
-    
-        COMPREPLY=($(compgen -W "${opts}" -- ${cur})) 
+
+        COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
         return 0
     else
         opts="create-app create-plugin help list-plugins package-plugin plugin-info set-proxy"
@@ -117,10 +118,10 @@ _grails_comp(){
             *)
                 ;;
         esac
-        COMPREPLY=($(compgen -W "${opts}" -- ${cur})) 
+        COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
         return 0
     fi
 }
- 
+
 complete -F _grails_comp grails
 # eof
