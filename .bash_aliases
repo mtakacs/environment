@@ -1,10 +1,10 @@
+#!/bin/bash
 #  -*- shell-script -*-
 #######################################################
 # $Id: .bash_aliases,v 1.19 2008/09/22 16:12:00 tak Exp $
 # @(#) aliases
 # Rob's aliases
 # Adopted and mutated by Tak
-
 
 alias a=alias
 
@@ -30,16 +30,14 @@ then
 fi
 
 a d="${LS}"
-a ls="${LS}"
-a ll="${LS} -l"
+a ls="${LS} -F"
+a ll="${LS} -la"
 a dir="${LS}"
 
 a l="${LS} -lL"
 a la="${LS} -laL"
 a lart="${LS} -lArtL"
-a ls="${LS} -F"
 a lt="${LS} -lt"
-a ll="${LS} -la"
 a lrt="${LS} -lrtL"
 
 #eval `dircolors -b /etc/DIR_COLORS`
