@@ -2,32 +2,45 @@
 # GIT-IGNORE
 #######################################################
 
-.CFUserTextEncoding
-.MacOSX
-.Trash
 .android
+.asgard
+.atlassian
+.awssecret
 .bash_history
+.CFUserTextEncoding
 .config
+.cpan
 .cups
 .dropbox
+.eclipse
+.eclipse_keyring
 .fontconfig
+.freemind
 .gitk
 .gradle
 .grails
 .groovy
+.gvm
+.inkscape-etc
 .ivy2
 .lesshst
 .local
+.MacOSX
 .mkvtoolnix
 .mysql_history
+.npm
 .ssh
 .ssh-agent
+.subversion
 .subversion_IDEA
+.Trash
 .viminfo
+.XAuthority
 .xinitrc.old
-.zenmap
 Android
+bin
 Desktop
+dev
 Documents
 Downloads
 Dropbox
@@ -36,10 +49,11 @@ Movies
 Music
 Pictures
 Public
+push
+reportit
 Sites
-bin
-dev
-xfers
 springsource
+tools
+xfers
 
 # EOF
