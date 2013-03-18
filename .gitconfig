@@ -11,6 +11,7 @@
 	excludesfile = /Users/tak/.gitignore_global
 	legacyheaders = false
 	usedeltabaseoffset = true
+	autocrlf = input
 [log]
 	decorate = short
 [color]
