@@ -8,6 +8,7 @@
 .awssecret
 .bash_history
 .CFUserTextEncoding
+.cache
 .config
 .cpan
 .cups
@@ -16,6 +17,7 @@
 .eclipse_keyring
 .fontconfig
 .freemind
+.gem
 .gitk
 .gradle
 .grails
@@ -28,11 +30,13 @@
 .MacOSX
 .mkvtoolnix
 .mysql_history
+.node*
 .npm
 .ssh
 .ssh-agent
 .subversion
 .subversion_IDEA
+.vim
 .Trash
 .viminfo
 .XAuthority
