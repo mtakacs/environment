@@ -29,7 +29,7 @@ export BASH_ENV="~/.bashrc"
 [ -f $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
 [ -f $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
-# EOF
-
 #THIS MUST BE AT THE END OF THE FILE FOR GVM TO WORK!!!
-[[ -s "/Users/tak/.gvm/bin/gvm-init.sh" && ! $(which gvm-init.sh) ]] && source "/Users/tak/.gvm/bin/gvm-init.sh"
+[[ -s "/Users/tak/.gvm/bin/gvm-init.sh" && -z $(which gvm-init.sh | grep '/gvm-init.sh') ]] && source "/Users/tak/.gvm/bin/gvm-init.sh"
+
+#eof
