@@ -19,8 +19,8 @@ export AWSWWWS="ec2-54-241-105-139.us-west-1.compute.amazonaws.com"
 export AWS1jenkins="ec2-54-245-191-16.us-west-2.compute.amazonaws.com"
 
 export AWSqa="ec2-184-169-231-179.us-west-1.compute.amazonaws.com"
-export AWSstages="ec2-50-18-68-131.us-west-1.compute.amazonaws.com"
-export AWS1beta="ec2-184-169-205-134.us-west-1.compute.amazonaws.com"
+export AWSstage="ec2-54-241-114-166.us-west-1.compute.amazonaws.com"
+export AWSbeta="ec2-184-169-205-134.us-west-1.compute.amazonaws.com"
 
 export AWSprod="ec2-54-241-211-88.us-west-1.compute.amazonaws.com"
 export AWSprodflop="ec2-184-72-0-153.us-west-1.compute.amazonaws.com"
@@ -30,8 +30,6 @@ export AWS1reportit="ec2-184-169-199-117.us-west-1.compute.amazonaws.com"
 export AWS1reporter="ec2-54-241-85-151.us-west-1.compute.amazonaws.com"
 export AWS1catalog="ec2-184-72-11-241.us-west-1.compute.amazonaws.com"
 export AWS1cstool="ec2-54-241-126-253.us-west-1.compute.amazonaws.com"
-export AWS1nfs="ec2-204-236-141-190.us-west-1.compute.amazonaws.com"
-export AWS1abtest="ec2-54-241-88-181.us-west-1.compute.amazonaws.com"
 
 #################################
 # convenience destinations
@@ -47,19 +45,16 @@ a awsapex="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSAPEX}"
 a aws1jenkins="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1jenkins}"
 
 a awsqa="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSqa}"
-a aws1stage="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1stage}"
+a awsstage="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSstage}"
+a awsbeta="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSbeta}"
 
 a awsprod="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSprod}"
 a awsprodflop="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWSprodflop}"
 
-a aws1nfs="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1nfs}"
 a aws1billit="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1billit}"
 a aws1cstool="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1cstool}"
 a aws1reportit="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1reportit}"
 a aws1reporter="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1reporter}"
-a aws1catalog="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1catalog}"
-a aws1abtest="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1abtest}"
-a aws1beta="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1beta}"
 a awsstages="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSstages}"
 
 ## remap LL
