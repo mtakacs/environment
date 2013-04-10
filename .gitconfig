@@ -5,13 +5,14 @@
 #    https://wincent.com/wiki/Git_quickstart
 ###############################################
 [user]
-	email = tak@project68.com
+	email = tak@citruslane.com
 	name = Tak
 [core]
 	excludesfile = /Users/tak/.gitignore_global
 	legacyheaders = false
 	usedeltabaseoffset = true
 	autocrlf = input
+	quotepath = off
 [log]
 	decorate = short
 [color]

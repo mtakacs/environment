@@ -22,8 +22,8 @@ export AWSqa="ec2-184-169-231-179.us-west-1.compute.amazonaws.com"
 export AWSstage="ec2-54-241-114-166.us-west-1.compute.amazonaws.com"
 export AWSbeta="ec2-184-169-205-134.us-west-1.compute.amazonaws.com"
 
-export AWSprod="ec2-54-241-211-88.us-west-1.compute.amazonaws.com"
-export AWSprodflop="ec2-184-72-0-153.us-west-1.compute.amazonaws.com"
+export AWSprod="ec2-54-241-231-191.us-west-1.compute.amazonaws.com"
+export AWSprodflop="ec2-184-72-23-19.us-west-1.compute.amazonaws.com"
 
 export AWS1billit="ec2-184-169-250-67.us-west-1.compute.amazonaws.com"
 export AWS1reportit="ec2-184-169-199-117.us-west-1.compute.amazonaws.com"

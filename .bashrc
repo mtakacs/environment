@@ -27,7 +27,9 @@ export BASH_ENV="~/.bashrc"
 [ -f $HOME/.bash_func ] && source $HOME/.bash_func
 [ -f $HOME/.bash_func_grails -a -f $HOME/.grails ] && source $HOME/.bash_func_grails
 [ -f $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
-[ -f $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
+#[ -f $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
+
+[[ $- == *i* ]] && source $HOME/dev/git-prompt/git-prompt.sh
 
 #THIS MUST BE AT THE END OF THE FILE FOR GVM TO WORK!!!
 [[ -s "/Users/tak/.gvm/bin/gvm-init.sh" && -z $(which gvm-init.sh | grep '/gvm-init.sh') ]] && source "/Users/tak/.gvm/bin/gvm-init.sh"
