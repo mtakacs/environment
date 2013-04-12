@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# Copyright © 2007-2012 Jamie Zawinski <jwz@jwz.org>
+# Copyright Â© 2007-2013 Jamie Zawinski <jwz@jwz.org>
 #
 # Permission to use, copy, modify, distribute, and sell this software and its
 # documentation for any purpose is hereby granted without fee, provided that
@@ -13,6 +13,7 @@
 # The name of the file will be derived from the title of the video.
 #
 #  --title "STRING"  Use this as the title instead.
+#  --progress        Show a textual progress bar for downloads.
 #  --suffix          Append the video ID to each written file name.
 #  --size            Instead of downloading it all, print video dimensions.
 #		     This requires "mplayer" and/or "ffmpeg".
@@ -24,9 +25,10 @@
 #
 #   javascript:location='http://YOUR_SITE/youtubedown.cgi?url='+location
 #
-# or better,
+# or, the same thing but using a small popup window,
 #
-#   javascript:window.open('http://YOUR_SITE/youtubedown.cgi?url='+location.toString().replace(/%26/g,'%2526').replace(/%23/g,'%2523'),'youtubedown','width=400,height=50')
+#   javascript:window.open('http://YOUR_SITE/youtubedown.cgi?url='+location.toString().replace(/%26/g,'%2526').replace(/%23/g,'%2523'),'youtubedown','width=400,height=50,top=0,left='+((screen.width-400)/2))
+#
 #
 # When you click on that bookmarklet in your toolbar, it will give you
 # a link on which you can do "Save Link As..." and be offered a sensible
@@ -44,7 +46,7 @@ use strict;
 use Socket;
 
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.142 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.151 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -74,6 +76,7 @@ sub error($) {
                   "Status: 500\n" .
                   "\n" .
                   "<P><B>ERROR:</B> " . $err . "<P>\n");
+    die "$err\n" if ($verbose > 2);  # For debugging CGI.
     exit 1;
   } elsif ($noerror) {
     die "$err\n";
@@ -119,10 +122,43 @@ sub html_quote($) {
 }
 
 
+my $progress_ticks = 0;
+my $progress_time = 0;
+
+sub draw_progress($) {
+  my ($ratio) = @_;
+
+  my $now = time();
+  my $eof = ($ratio == -1);
+  $ratio = 1 if $eof;
+
+  return if ($progress_time == $now && !$eof);
+
+  my $cols = 72;
+  my $ticks = int($cols * $ratio);
+
+  if ($ticks > $progress_ticks) {
+    my $pct = sprintf("%3d%%", 100 * $ratio);
+    $pct =~ s/^  /. /s;
+    print STDERR "\b" x length($pct)			# erase previous pct
+      if ($progress_ticks > 0);
+    while ($ticks > $progress_ticks) {
+      print STDERR ".";
+      $progress_ticks++;
+    }
+    print STDERR $pct;
+  }
+  print STDERR "\r" . (' ' x ($cols + 4)) . "\r" if ($eof);	# erase line
+  $progress_time = $now;
+}
+
+
+
 # Loads the given URL, returns: $http, $head, $body.
 #
-sub get_url_1($;$$$$$) {
-  my ($url, $referer, $extra_headers, $head_p, $to_file, $max_bytes) = @_;
+sub get_url_1($;$$$$$$) {
+  my ($url, $referer, $extra_headers, $head_p, $to_file, $max_bytes,
+      $expect_bytes) = @_;
   
   error ("can't do HEAD and write to a file") if ($head_p && $to_file);
 
@@ -214,12 +250,21 @@ sub get_url_1($;$$$$$) {
   print STDERR "  <== \n" if ($verbose > 4);
 
   my $out;
-  if ($to_file) {
+  if ($to_file) {  # might be "-".
     open ($out, ">$to_file") || error ("$to_file: $!");
     binmode ($out);
   }
 
+  # If we're proxying a download, also copy the document's headers.
+  #
   if ($to_file && $to_file eq '-') {
+
+    # Maybe if we nuke the Content-Type, that will stop Safari from
+    # opening the file by default.  Answer: nope.
+    #  $head =~ s@^(Content-Type:)[^\r\n]+@$1 application/octet-stream@gmi;
+    # Ok, maybe if we mark it as an attachment?  Answer: still nope.
+    #  $head = "Content-Disposition: attachment\r\n" . $head;
+
     print $out $head;
   }
 
@@ -237,8 +282,10 @@ sub get_url_1($;$$$$$) {
       $bytes += length($_);
       $lines++;
     }
+    draw_progress ($bytes / $expect_bytes) if ($expect_bytes);
     last if ($max_bytes && $bytes >= $max_bytes);
   }
+  draw_progress (-1) if ($expect_bytes);
 
   if ($to_file) {
     close $out || error ("$to_file: $!");
@@ -262,8 +309,9 @@ sub get_url_1($;$$$$$) {
 # Loads the given URL, processes redirects.
 # Returns: $http, $head, $body, $final_redirected_url.
 #
-sub get_url($;$$$$$$) {
-  my ($url, $referer, $headers, $head_p, $to_file, $max_bytes, $retry_p) = @_;
+sub get_url($;$$$$$$$) {
+  my ($url, $referer, $headers, $head_p, $to_file, $max_bytes, $retry_p,
+      $expect_bytes) = @_;
 
   print STDERR "$progname: " . ($head_p ? "HEAD" : "GET") . " $url\n"
     if ($verbose > 2);
@@ -277,7 +325,8 @@ sub get_url($;$$$$$$) {
 
   do {
     my ($http, $head, $body) = 
-      get_url_1 ($url, $referer, $headers, $head_p, $to_file, $max_bytes);
+      get_url_1 ($url, $referer, $headers, $head_p, $to_file, $max_bytes,
+                 $expect_bytes);
 
     $http =~ s/[\r\n]+$//s;
 
@@ -403,7 +452,7 @@ sub video_url_size($$$) {
   check_http_status ($url, $http, 1);
 
   my ($ct) = ($head =~ m/^content-type:\s*([^\s;&]+)/mi);
-  error ("expected video, got \"$ct\" in $url")
+  error ("$id: expected video, got \"$ct\" in $url")
     if ($ct =~ m/text/i);
 
   my ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
@@ -469,12 +518,20 @@ sub cgi_output($$$$$$$) {
   # a "500 Server Error" back.
   #
   my $proxy_p = 1;
+  utf8::encode ($file);   # Unpack wide chars into multi-byte UTF-8.
   $url = ($ENV{SCRIPT_NAME} . 
           '/' . url_quote($file) .
           '?' . ($proxy_p? 'proxy' : 'redir') .
           '=' . url_quote($url));
   $url = html_quote ($url);
+  $title = html_quote ($title);
 
+  # New HTML5 feature: <A DOWNLOAD=...> seems to be a client-side way of
+  # doing the same thing that "Content-Disposition: attachment; filename="
+  # does.  Unfortunately, even with this, Safari still opens the .MP4 file
+  # after downloading instead of just saving it.
+
+  binmode (STDOUT, ':utf8');
   print STDOUT
     ("Content-Type: text/html; charset=UTF-8\n" .
      "\n" .
@@ -492,7 +549,7 @@ sub cgi_output($$$$$$$) {
      " </HEAD>\n" .
      " <BODY>\n" .
      "  Save Link As:&nbsp; " .
-     "  <A HREF=\"$url\">$title</A>, " .
+     "  <A HREF=\"$url\" DOWNLOAD=\"$title\">$title</A>, " .
      "  <NOBR>$ss.</NOBR>\n" .
      " </BODY>\n" .
      "</HTML>\n");
@@ -511,17 +568,43 @@ sub scrape_youtube_url($$$$$) {
   my $info_url = ("http://www.youtube.com/get_video_info?video_id=$id" .
                   "&el=vevo");	# Needed for VEVO, works on non-VEVO.
 
-  my ($http, $head, $body) = get_url ($info_url);
-  check_http_status ($url, $http, 1);
+  my ($kind, $urlmap, $body, $fmtlist);
 
-  my ($kind, $urlmap) = ($body =~ m@&(fmt_url_map)=([^&]+)@si);
-  ($kind, $urlmap) = ($body =~ m@&(fmt_stream_map)=([^&]+)@si)	    # VEVO
-    unless $urlmap;
-  ($kind, $urlmap) = ($body =~ m@&(url_encoded_fmt_stream_map)=([^&]+)@si) 
-    unless $urlmap;			   # New nonsense seen in Aug 2011
-  print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
+  my $retries = 5;
+  my $err = undef;
 
-  my ($fmtlist) = ($body =~ m@&fmt_list=([^&]+)@si);
+  while (--$retries) {	# Sometimes the $info_url fails; try a few times.
+
+    my ($http, $head);
+    ($http, $head, $body) = get_url ($info_url);
+    $err = (check_http_status ($url, $http, 0) ? undef : $http);
+
+    ($kind, $urlmap) = ($body =~ m@&(fmt_url_map)=([^&]+)@si);
+    ($kind, $urlmap) = ($body =~ m@&(fmt_stream_map)=([^&]+)@si)	# VEVO
+      unless $urlmap;
+    ($kind, $urlmap) = ($body =~ m@&(url_encoded_fmt_stream_map)=([^&]+)@si) 
+      unless $urlmap;			   # New nonsense seen in Aug 2011
+    print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
+
+    ($fmtlist) = ($body =~ m@&fmt_list=([^&]+)@si);
+
+    ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
+
+    last if ($urlmap && $title);
+
+    if ($verbose) {
+      if (!$urlmap) {
+        print STDERR "$progname: $id: no urlmap, retrying...\n";
+      } else {
+        print STDERR "$progname: $id: no title, retrying...\n";
+      }
+    }
+
+    sleep (1);
+  }
+
+  error ("$progname: $id: $err")
+    if $err;
 
   if (! $urlmap) {
     # If we couldn't get a URL map out of the info URL, try harder.
@@ -534,6 +617,8 @@ sub scrape_youtube_url($$$$$) {
     $err = '' unless $err;
     if ($err) {
       $err = url_unquote($err);
+      $err =~ s/^"[^\"\n]+"\n//s;
+      $err =~ s/\s+/ /gs;
       $err =~ s/^\s+|\s+$//s;
       $err = " (\"$err\")";
     }
@@ -548,7 +633,7 @@ sub scrape_youtube_url($$$$$) {
   $fmtlist = url_unquote ($fmtlist || '');
 
   ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
-  error ("no title in $info_url") unless $title;
+  error ("$id: no title in $info_url\n\n####\n$body") unless $title;
   $title = url_unquote($title);
 
   return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $title,
@@ -612,19 +697,29 @@ sub scrape_youtube_url_noembed($$$$$) {
     $unquote_p = 0;
   }
 
-  error ("$id: $1") 
-    if (!$args &&
-        $body =~ m@<div \s+ (?: id | class ) = 
-                   "( ?: error-box |
-			 yt-alert-content |
-			 unavailable-message )"
-                   [^<>]* > \s* 
-                   ( [^<>]+? ) \s*
-                   </div>@six);
+  if (! $args) {
+    # Try to find a better error message
+    my (undef, $err) = ($body =~ m@<( div | h1 ) \s+
+                                    ( ?: id | class ) = 
+                                   "( ?: error-box |
+                                         yt-alert-content |
+                                         unavailable-message )"
+                                   [^<>]* > \s* 
+                                   ( [^<>]+? ) \s*
+                                   </ \1 > @six);
+    if ($err) {
+      $err =~ s/^"[^\"\n]+"\n//s;
+      $err =~ s/^&quot;[^\"\n]+?&quot;\n//s;
+      $err =~ s/\s+/ /gs;
+      $err =~ s/^\s+|\s+$//s;
+      error ("$id: $err");
+    }
+  }
 
   # Check this late, so that we get better error messages, above:
   # Youtube returns HTTP 404 pages that have real messages in them.
-  check_http_status ($url, $http, 1);
+  #
+  error ("$id: $http$oerror") unless (check_http_status ($url, $http, 0));
 
   error ("$id: no SWF_ARGS$oerror") unless $args;
 
@@ -677,7 +772,7 @@ sub scrape_youtube_url_2($$$$$$$) {
     my ($k, $v, $e, $sig);
     if (m/^\d+\|/s) {
       ($k, $v) = m/^(.*?)\|(.*)$/s;
-    } elsif (m/^[a-z_]+=/s) {
+    } elsif (m/^[a-z][a-z\d_]+=/s) {
       ($sig) = m/\bsig=([^&]+)/s;
       ($k) = m/\bitag=(\d+)/s;
       ($v) = m/\burl=([^&]+)/s;
@@ -714,7 +809,7 @@ sub scrape_youtube_url_2($$$$$$$) {
       $append_suffix_p = $x;
       download_video_url ($url, $title, 
                           ($size_p ? $append_suffix_p : 0),
-                          0, $fmt);
+                          undef, 0, $fmt);
     }
     exit (0);
   }
@@ -980,6 +1075,8 @@ sub scrape_vimeo_private($$) {
 sub munge_title($) {
   my ($title) = @_;
 
+  utf8::decode ($title);  # Pack multi-byte UTF-8 back into wide chars.
+
   # Crud added by the sites themselves.
 
   $title =~ s/\s+/ /gsi;
@@ -1040,9 +1137,9 @@ sub file_exists_with_suffix($) {
 }
 
 
-sub download_video_url($$$$$);
-sub download_video_url($$$$$) {
-  my ($url, $title, $size_p, $cgi_p, $force_fmt) = @_;
+sub download_video_url($$$$$$);
+sub download_video_url($$$$$$) {
+  my ($url, $title, $size_p, $progress_p, $cgi_p, $force_fmt) = @_;
 
   # Add missing "http:"
   $url = "http://$url" unless ($url =~ m@^https?://@si);
@@ -1053,6 +1150,9 @@ sub download_video_url($$$$$) {
   # Rewrite Vimeo URLs so that we get a page with the proper video title:
   # "/...#NNNNN" => "/NNNNN"
   $url =~ s@^(https?://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
+
+  # No https.
+  $url =~ s@^https:@http:@s;
 
   my ($id, $site, $playlist_p);
 
@@ -1100,7 +1200,8 @@ sub download_video_url($$$$$) {
       $url =~ s@&.*$@@s;
     }
     $url = "http://www.$site.com$url" if ($url =~ m@^/@s);
-    return download_video_url ($url, $title, $size_p, $cgi_p, $force_fmt);
+    return download_video_url ($url, $title, $size_p, undef, $cgi_p,
+                               $force_fmt);
 
   # Youtube "/user" and "/profile" URLs.
   } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
@@ -1230,7 +1331,9 @@ sub download_video_url($$$$$) {
 
     print STDERR "$progname: downloading \"$title\"\n" if ($verbose);
 
-    my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file);
+    my $expect_bytes = ($progress_p ? $size : undef);
+    my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file, undef,
+                                        undef, $expect_bytes);
     check_http_status ($url, $http, 1);
 
     if (! -s $file) {
@@ -1297,7 +1400,7 @@ sub download_playlist($$$$$) {
 
       eval {
         $noerror = 1;
-        download_video_url ($u2, $t2, $size_p, $cgi_p, undef);
+        download_video_url ($u2, $t2, $size_p, undef, $cgi_p, undef);
         $noerror = 0;
       };
       print STDERR "$progname: $@" if $@;
@@ -1366,13 +1469,14 @@ sub do_cgi() {
     } else {
       # Proxy the data, so that we can feed it a non-browser user agent.
       print STDOUT "Content-Disposition: attachment; filename=\"$name\"\n";
+      binmode (STDOUT);
       get_url ($proxy, undef, undef, 0, '-');
     }
 
   } elsif ($url) {
     error ("extraneous crap in URL: $ENV{PATH_INFO}")
       if (defined($ENV{PATH_INFO}) && $ENV{PATH_INFO} ne "");
-    download_video_url ($url, undef, 0, 1, undef);
+    download_video_url ($url, undef, 0, undef, 1, undef);
 
   } else {
     error ("no URL specified for CGI");
@@ -1382,7 +1486,7 @@ sub do_cgi() {
 
 sub usage() {
   print STDERR "usage: $progname [--verbose] [--quiet] [--size]" .
-		       " [--suffix] [--fmt N]\n" .
+		       " [--progress] [--suffix] [--fmt N]\n" .
                "\t\t   [--title title] youtube-or-vimeo-urls ...\n";
   exit 1;
 }
@@ -1400,18 +1504,20 @@ sub main() {
   my @urls = ();
   my $title = undef;
   my $size_p = 0;
+  my $progress_p = 0;
   my $fmt = undef;
 
   while ($#ARGV >= 0) {
     $_ = shift @ARGV;
-    if (m/^--?verbose$/)   { $verbose++; }
-    elsif (m/^-v+$/)       { $verbose += length($_)-1; }
-    elsif (m/^--?quiet$/)  { $verbose--; }
-    elsif (m/^--?title$/)  { $title = shift @ARGV; }
-    elsif (m/^--?size$/)   { $size_p++; }
-    elsif (m/^--?suffix$/) { $append_suffix_p++; }
-    elsif (m/^--?fmt$/)    { $fmt = shift @ARGV; }
-    elsif (m/^-./)         { usage; }
+    if (m/^--?verbose$/)     { $verbose++; }
+    elsif (m/^-v+$/)         { $verbose += length($_)-1; }
+    elsif (m/^--?q(uiet)?$/) { $verbose--; }
+    elsif (m/^--?title$/)    { $title = shift @ARGV; }
+    elsif (m/^--?size$/)     { $size_p++; }
+    elsif (m/^--?suffix$/)   { $append_suffix_p++; }
+    elsif (m/^--?progress$/) { $progress_p++; }
+    elsif (m/^--?fmt$/)      { $fmt = shift @ARGV; }
+    elsif (m/^-./)           { usage; }
     else { 
       s@^//@http://@s;
       error ("not a Youtube or Vimeo URL: $_")
@@ -1436,7 +1542,7 @@ sub main() {
   usage unless ($#urls >= 0);
   foreach (@urls) {
     my ($title, $fmt, $url) = @$_;
-    download_video_url ($url, $title, $size_p, 0, $fmt);
+    download_video_url ($url, $title, $size_p, $progress_p, 0, $fmt);
   }
 }
 
