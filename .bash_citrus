@@ -13,10 +13,10 @@ export BLOG="50.18.123.151"
 export AWS1="50.18.127.91"
 export AWSIMG="184.169.163.163"
 export AWSAPEX="54.245.83.163"
-export AWSSTAGES="ec2-54-245-152-237.us-west-2.compute.amazonaws.com"
+export AWSstages="ec2-50-18-68-131.us-west-1.compute.amazonaws.com"
 export AWSWWWS="ec2-54-241-105-139.us-west-1.compute.amazonaws.com"
 
-export AWS1jenkins="ec2-54-245-191-16.us-west-2.compute.amazonaws.com"
+export AWS1jenkins="ec2-54-214-120-134.us-west-2.compute.amazonaws.com"
 
 export AWSqa="ec2-184-169-231-179.us-west-1.compute.amazonaws.com"
 export AWSstage="ec2-54-241-114-166.us-west-1.compute.amazonaws.com"
