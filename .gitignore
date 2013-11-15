@@ -43,7 +43,6 @@
 .XAuthority
 .xinitrc.old
 Android
-bin
 Desktop
 dev
 Documents
@@ -54,11 +53,9 @@ Movies
 Music
 Pictures
 Public
-push
 reportit
 Sites
 springsource
-tools
 xfers
 
 # EOF
