@@ -24,3 +24,19 @@ pskill(){
     kill -9 $pid
     echo "slaughtered."
 }
+
+#################################
+# Are in a git root? show branch
+# @web http://www.jroller.com/melix/entry/my_git_tweaks_for_daily
+#################################
+
+## As an example
+simple_git_branch() {
+  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ \1/'
+}
+
+parse_git_branch() {
+  export repo=`git remote show -n origin 2> /dev/null | sed -e '/^  [^F]/d' -e'/remote/d' -e 's/.*\/\(.*\).git/\1/'`
+  export branch=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
+  echo "(${repo}::${branch})"
+}

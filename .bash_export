@@ -48,23 +48,6 @@ if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
     debian_chroot=$(cat /etc/debian_chroot)
 fi
 
-# if [ "$color_prompt" = yes ]; then
-#     PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
-# else
-#     PS1='${debian_chroot:+($debian_chroot)}\u@\h:\w\$ '
-# fi
-# unset color_prompt force_color_prompt
-
-# # If this is an xterm set the title to user@host:dir
-# case "$TERM" in
-# xterm*|rxvt*)
-#     PS1="\[\e]0;${debian_chroot:+($debian_chroot)}\u@\h: \w\a\]$PS1"
-#     ;;
-# *)
-#     ;;
-# esac
-
-
 # Change the window title of X terminals
 case $TERM in
     xterm*|rxvt|Eterm|eterm)
@@ -96,7 +79,7 @@ fi
 
 #################################
 #   How many characters of the $PWD should be kept
-# XXX: this doesnt seem to work for me
+# XXX: this doesn't seem to work for me
 #################################
 
 function prompt_command {
@@ -124,32 +107,16 @@ function prompt_command {
 # gnuls color, should use dircolor
 # export LS_COLORS="ex=35:di=36:ln=31:*.c=32:*.cpp=32:*.cc=32:*.cxx=32:*.h=33:*.hh=33:*.m=32"
 
-PCOLOR_OFF="\[\033[00m\]"
-PCOLOR_BLACK="\[\033[01;30m\]"
-PCOLOR_RED="\[\033[01;31m\]"
-PCOLOR_GREEN="\[\033[01;32m\]"
-PCOLOR_YELLOW="\[\033[01;33m\]"
-PCOLOR_BLUE="\[\033[01;34m\]"
-PCOLOR_PURPLE="\[\033[01;35m\]"
-PCOLOR_CYAN="\[\033[01;36m\]"
-PCOLOR_WHITE="\[\033[01;37m\]"
-PCOLOR_DEFAULT="\[\033[01;38m\]"
-
-#################################
-# Are in a git root? show branch
-# @web http://www.jroller.com/melix/entry/my_git_tweaks_for_daily
-#################################
-
-## As an example
-simple_git_branch() {
-  git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ \1/'
-}
-
-parse_git_branch() {
-  export repo=`git remote show -n origin 2> /dev/null | sed -e '/^  [^F]/d' -e'/remote/d' -e 's/.*\/\(.*\).git/\1/'`
-  export branch=`git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/\1/'`
-  echo "(${repo}::${branch})"
-}
+export PCOLOR_OFF="\[\033[00m\]"
+export PCOLOR_BLACK="\[\033[01;30m\]"
+export PCOLOR_RED="\[\033[01;31m\]"
+export PCOLOR_GREEN="\[\033[01;32m\]"
+export PCOLOR_YELLOW="\[\033[01;33m\]"
+export PCOLOR_BLUE="\[\033[01;34m\]"
+export PCOLOR_PURPLE="\[\033[01;35m\]"
+export PCOLOR_CYAN="\[\033[01;36m\]"
+export PCOLOR_WHITE="\[\033[01;37m\]"
+export PCOLOR_DEFAULT="\[\033[01;38m\]"
 
 #################################
 # Are we root?
@@ -161,12 +128,29 @@ else
   export UIDCOLOR=${PCOLOR_GREEN}
 fi
 
+#################################
+# Git Prompt settings
+# @see git-prompt.sh
+#################################
+
+export GIT_PS1_SHOWDIRTYSTATE="true"
+export GIT_PS1_SHOWSTASHSTATE="true"
+export GIT_PS1_SHOWUNTRACKEDFILES="true"
+export GIT_PS1_SHOWUPSTREAM="auto verbose git"
+export GIT_PS1_DESCRIBE_STYLE="branch"
+export GIT_PS1_SHOWCOLORHINTS="true"
+
 # Do not set PS1 for dumb terminals or emacs
 if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
 then
-    export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(parse_git_branch)> ${PCOLOR_OFF}"
+    export PS1="${PCOLOR_OFF}${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+    #export PS1="${PCOLOR_OFF}\$(__git_ps1 '(%s)')${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+    #export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(__git_ps1 '(%s)')> ${PCOLOR_OFF}"
+    #export PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'
+    #export PROMPT_COMMAND='__git_ps1 "g" "\u@\h:\w> "'
 else
-    export PS1="\u@\h:\W\$(parse_git_branch)> "
+    export PS1='\u@\h:\W> '
+    #export PS1='\u@\h:\W\$(__git_ps1 " (%s)")> '
 fi
 
 #################################
@@ -256,11 +240,11 @@ path=""
 # my stuff
 path="$path $HOME/s"
 
+path="$path /usr/local/bin"
 path="$path /usr/bin"
 path="$path /bin"
 path="$path /usr/sbin"
 path="$path /sbin"
-path="$path /usr/local/bin"
 path="$path /usr/X11/bin"
 path="$path /usr/X11R6/bin"
 path="$path /usr/local/sbin"
