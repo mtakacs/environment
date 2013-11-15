@@ -45,8 +45,9 @@ use diagnostics;
 use strict;
 use Socket;
 
+my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.151 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.241 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -63,6 +64,24 @@ $ENV{PATH} = "/opt/local/bin:$ENV{PATH}";   # for macports mplayer
 my @video_extensions = ("mp4", "flv", "webm");
 
 
+my $html_head =
+  ("<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n" .
+   "	  \"http://www.w3.org/TR/html4/loose.dtd\">\n" .
+   "<HTML>\n" .
+   " <HEAD>\n" .
+   "  <TITLE></TITLE>\n" .
+   " <STYLE TYPE=\"text/css\">\n" .
+   "  body { font-family: Arial,Helvetica,sans-serif; font-size: 12pt;\n" .
+   "         color: #000; background: #FF0; }\n" .
+   "  a { font-weight: bold; }\n" .
+   "  .err { font-weight: bold; color: #F00; }\n" .
+   " </STYLE>\n" .
+   " </HEAD>\n" .
+   " <BODY>\n");
+my $html_tail = " </BODY>\n</HTML>\n";
+     
+
+
 my $noerror = 0;
 
 sub error($) {
@@ -72,10 +91,20 @@ sub error($) {
     $err =~ s/&/&amp;/gs;
     $err =~ s/</&lt;/gs;
     $err =~ s/>/&gt;/gs;
+
+    # $error_whiteboard kludge
+    $err =~ s/^\t//gm;
+    $err =~ s@\n\n(.*)\n\n@<PRE STYLE="font-size:9pt">$1</PRE>@gs;
+    # $err =~ s/\n/<BR>/gs;
+
+    $err = $html_head . '<P><SPAN CLASS="err">ERROR:</SPAN> ' . $err .
+           $html_tail;
+    $err =~ s@(<TITLE>)[^<>]*@$1$progname: Error@gsi;
+
     print STDOUT ("Content-Type: text/html\n" .
                   "Status: 500\n" .
                   "\n" .
-                  "<P><B>ERROR:</B> " . $err . "<P>\n");
+                  $err);
     die "$err\n" if ($verbose > 2);  # For debugging CGI.
     exit 1;
   } elsif ($noerror) {
@@ -84,6 +113,25 @@ sub error($) {
     print STDERR "$progname: $err\n";
     exit 1;
   }
+}
+
+
+# For internal errors.
+my $errorI = ("\n" .
+              "\n\tPlease report this URL to jwz\@jwz.org!" .
+              "\n\tBut make sure you have the latest version first:" .
+              "\n\thttp://www.jwz.org/hacks/#youtubedown" .
+              "\n");
+my $error_whiteboard = '';	# for signature diagnostics
+
+sub errorI($) {
+  my ($err) = @_;
+  if ($error_whiteboard) {
+    $error_whiteboard =~ s/^/\t/gm;
+    $err .= "\n\n" . $error_whiteboard;
+  }
+  $err .= $errorI;
+  error ($err);
 }
 
 
@@ -160,6 +208,9 @@ sub get_url_1($;$$$$$$) {
   my ($url, $referer, $extra_headers, $head_p, $to_file, $max_bytes,
       $expect_bytes) = @_;
   
+  my $progress_p = ($expect_bytes && $expect_bytes > 0);
+  $expect_bytes = -$expect_bytes if ($expect_bytes && $expect_bytes < 0);
+
   error ("can't do HEAD and write to a file") if ($head_p && $to_file);
 
   error ("not an HTTP URL, try rtmpdump: $url") if ($url =~ m@^rtmp@i);
@@ -250,7 +301,9 @@ sub get_url_1($;$$$$$$) {
   print STDERR "  <== \n" if ($verbose > 4);
 
   my $out;
-  if ($to_file) {  # might be "-".
+
+  if ($to_file) {
+    # Must be 2-arg open for ">-" when $outfile is '-'.
     open ($out, ">$to_file") || error ("$to_file: $!");
     binmode ($out);
   }
@@ -268,6 +321,12 @@ sub get_url_1($;$$$$$$) {
     print $out $head;
   }
 
+  # Don't line-buffer binary bodies.
+  # No, this breaks --progress. Probably doesn't improve performance either.
+  #
+  #  local $/ = $/;
+  #  $/ = undef if ($to_file);
+
   my $lines = 0;
   my $bytes = 0;
   while (<S>) {
@@ -282,10 +341,10 @@ sub get_url_1($;$$$$$$) {
       $bytes += length($_);
       $lines++;
     }
-    draw_progress ($bytes / $expect_bytes) if ($expect_bytes);
+    draw_progress ($bytes / $expect_bytes) if ($progress_p);
     last if ($max_bytes && $bytes >= $max_bytes);
   }
-  draw_progress (-1) if ($expect_bytes);
+  draw_progress (-1) if ($progress_p);
 
   if ($to_file) {
     close $out || error ("$to_file: $!");
@@ -300,6 +359,16 @@ sub get_url_1($;$$$$$$) {
 
   if (!$http) {
     error ("null response: $url");
+  }
+
+  # Check to see if a network failure truncated the file.
+  # Maybe we should delete the file too?
+  #
+  if ($to_file && $expect_bytes && $bytes != $expect_bytes) {
+    my $pct = int (100 * $bytes / $expect_bytes);
+    $pct = sprintf ("%.2f", 100 * $bytes / $expect_bytes) if ($pct == 100);
+    print STDERR "$progname: WARNING: got only $pct%" .
+      " ($bytes instead of $expect_bytes) of \"$to_file\"\n";
   }
 
   return ($http, $head, $body);
@@ -379,7 +448,8 @@ sub get_url($;$$$$$$$) {
 sub check_http_status($$$) {
   my ($url, $http, $err_p) = @_;
   return 1 if ($http =~ m@^HTTP/[0-9.]+ 20\d@si);
-  error ("$http: $url") if ($err_p);
+  errorI ("$http: $url") if ($err_p > 1 && $verbose);
+  error  ("$http: $url") if ($err_p);
   return 0;
 }
 
@@ -449,10 +519,10 @@ sub video_url_size($$$) {
   my $bytes = 380 * 1024;	   # Need a lot of data to get size from HD
 
   my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file, $bytes, 0);
-  check_http_status ($url, $http, 1);
+  check_http_status ($url, $http, 2);  # internal error if still 403
 
   my ($ct) = ($head =~ m/^content-type:\s*([^\s;&]+)/mi);
-  error ("$id: expected video, got \"$ct\" in $url")
+  errorI ("$id: expected video, got \"$ct\" in $url")
     if ($ct =~ m/text/i);
 
   my ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
@@ -465,100 +535,417 @@ sub video_url_size($$$) {
 }
 
 
-# Generates HTML output that provides a link for direct downloading of
-# the highest-resolution underlying video.  The HTML also lists the
-# video dimensions and file size, if possible.
+# 24-Jun-2013: When use_cipher_signature=True, the signature must be
+# translated from lengths ranging from 82 to 88 back down to the 
+# original, unciphered length of 81 (40.40).
 #
-sub cgi_output($$$$$$$) {
-  my ($title, $file, $id, $url, $w, $h, $size) = @_;
+# This is not crypto or a hash, just a character-rearrangement cipher.
+# Total security through obscurity.  Total dick move.
+#
+# The implementation of this cipher used by the Youtube HTML5 video
+# player lives in a Javascript file with a name like:
+#   http://s.ytimg.com/yts/jsbin/html5player-VERSION.js
+# where VERSION changes periodically.  Sometimes the algorithm in the
+# Javascript changes, also.  So we name each algorithm according to
+# the VERSION string, and dispatch off of that.  Each time Youtube
+# rolls out a new html5player file, we will need to update the
+# algorithm accordingly.  See guess_cipher(), below.  Run this
+# script with --guess if it has changed.  Run --guess --guess from
+# cron to have it tell you only when there's a new cipher.
+#
+# So far, only three commands are used in the ciphers, so we can represent
+# them compactly:
+#
+# - r  = reverse the string;
+# - sN = slice from character N to the end;
+# - wN = swap 0th and Nth character.
+#
+my %ciphers = (
+  'vflNzKG7n' => 's3 r s2 r s1 r w67',   	    # 30 Jan 2013, untested
+  'vfllMCQWM' => 's2 w46 r w27 s2 w43 s2 r',	    # 15 Feb 2013, untested
+  'vflJv8FA8' => 's1 w51 w52 r',		    # 12 Mar 2013, untested
+  'vflR_cX32' => 's2 w64 s3',			    # 11 Apr 2013, untested
+  'vflveGye9' => 'w21 w3 s1 r w44 w36 r w41 s1',    # 02 May 2013, untested
+  'vflj7Fxxt' => 'r s3 w3 r w17 r w41 r s2',	    # 14 May 2013, untested
+  'vfltM3odl' => 'w60 s1 w49 r s1 w7 r s2 r',	    # 23 May 2013
+  'vflDG7-a-' => 'w52 r s3 w21 r s3 r',  	    # 06 Jun 2013
+  'vfl39KBj1' => 'w52 r s3 w21 r s3 r',  	    # 12 Jun 2013
+  'vflmOfVEX' => 'w52 r s3 w21 r s3 r',  	    # 21 Jun 2013
+  'vflJwJuHJ' => 'r s3 w19 r s2',		    # 25 Jun 2013
+  'vfl_ymO4Z' => 'r s3 w19 r s2',		    # 26 Jun 2013
+  'vfl26ng3K' => 'r s2 r',			    # 08 Jul 2013
+  'vflcaqGO8' => 'w24 w53 s2 w31 w4',		    # 11 Jul 2013
+  'vflQw-fB4' => 's2 r s3 w9 s3 w43 s3 r w23',      # 16 Jul 2013
+  'vflSAFCP9' => 'r s2 w17 w61 r s1 w7 s1',         # 18 Jul 2013
+  'vflART1Nf' => 's3 r w63 s2 r s1',                # 22 Jul 2013
+  'vflLC8JvQ' => 'w34 w29 w9 r w39 w24',            # 25 Jul 2013
+  'vflm_D8eE' => 's2 r w39 w55 w49 s3 w56 w2',      # 30 Jul 2013
+  'vflTWC9KW' => 'r s2 w65 r',                      # 31 Jul 2013
+  'vflRFcHMl' => 's3 w24 r',                        # 04 Aug 2013
+  'vflM2EmfJ' => 'w10 r s1 w45 s2 r s3 w50 r',      # 06 Aug 2013
+  'vflz8giW0' => 's2 w18 s3',                       # 07 Aug 2013
+  'vfl_wGgYV' => 'w60 s1 r s1 w9 s3 r s3 r',        # 08 Aug 2013
+  'vfl1HXdPb' => 'w52 r w18 r s1 w44 w51 r s1',     # 12 Aug 2013
+  'vflkn6DAl' => 'w39 s2 w57 s2 w23 w35 s2',        # 15 Aug 2013
+  'vfl2LOvBh' => 'w34 w19 r s1 r s3 w24 r',         # 16 Aug 2013
+  'vfl-bxy_m' => 'w48 s3 w37 s2',                   # 20 Aug 2013
+  'vflZK4ZYR' => 'w19 w68 s1',                      # 21 Aug 2013
+  'vflh9ybst' => 'w48 s3 w37 s2',                   # 21 Aug 2013
+  'vflapUV9V' => 's2 w53 r w59 r s2 w41 s3',        # 27 Aug 2013
+  'vflg0g8PQ' => 'w36 s3 r s2',                     # 28 Aug 2013
+  'vflHOr_nV' => 'w58 r w50 s1 r s1 r w11 s3',      # 30 Aug 2013
+  'vfluy6kdb' => 'r w12 w32 r w34 s3 w35 w42 s2',   # 05 Sep 2013
+  'vflkuzxcs' => 'w22 w43 s3 r s1 w43',             # 10 Sep 2013
+  'vflGNjMhJ' => 'w43 w2 w54 r w8 s1',              # 12 Sep 2013
+  'vfldJ8xgI' => 'w11 r w29 s1 r s3',               # 17 Sep 2013
+  'vfl79wBKW' => 's3 r s1 r s3 r s3 w59 s2',        # 19 Sep 2013
+  'vflg3FZfr' => 'r s3 w66 w10 w43 s2',             # 24 Sep 2013
+  'vflUKrNpT' => 'r s2 r w63 r',                    # 25 Sep 2013
+  'vfldWnjUz' => 'r s1 w68',                        # 30 Sep 2013
+  'vflP7iCEe' => 'w7 w37 r s1',                     # 03 Oct 2013
+  'vflzVne63' => 'w59 s2 r',                        # 07 Oct 2013
+  'vflO-N-9M' => 'w9 s1 w67 r s3',                  # 09 Oct 2013
+  'vflZ4JlpT' => 's3 r s1 r w28 s1',                # 11 Oct 2013
+  'vflDgXSDS' => 's3 r s1 r w28 s1',                # 15 Oct 2013
+  'vflW444Sr' => 'r w9 r s1 w51 w27 r s1 r',        # 17 Oct 2013
+  'vflK7RoTQ' => 'w44 r w36 r w45',                 # 21 Oct 2013
+  'vflKOCFq2' => 's1 r w41 r w41 s1 w15',           # 23 Oct 2013
+  'vflcLL31E' => 's1 r w41 r w41 s1 w15',           # 28 Oct 2013
+  'vflz9bT3N' => 's1 r w41 r w41 s1 w15',           # 31 Oct 2013
+  'vfliZsE79' => 'r s3 w49 s3 r w58 s2 r s2',       # 05 Nov 2013
+  'vfljOFtAt' => 'r s3 r s1 r w69 r',               # 07 Nov 2013
+);
 
-  if (! ($w && $h)) {
-    ($w, $h, $size) = video_url_size ($title, $id, $url);
+sub decipher_sig($$$) {
+  my ($id, $cipher, $signature) = @_;
+
+  return $signature unless defined ($cipher);
+
+  my $orig = $signature;
+  my @s = split (//, $signature);
+
+  my $c = $ciphers{$cipher};
+  if (! $c) {
+    print STDERR "$progname: WARNING: $id: unknown cipher $cipher!\n"
+      if ($verbose);
+    $c = guess_cipher ($cipher);
   }
 
-  $size = -1 unless defined($size);
+  $c =~ s/([^\s])([a-z])/$1 $2/gs;
+  foreach my $c (split(/\s+/, $c)) {
+    if    ($c eq '')           { }
+    elsif ($c eq 'r')          { @s = reverse (@s);  }
+    elsif ($c =~ m/^s(\d+)$/s) { @s = @s[$1 .. $#s]; }
+    elsif ($c =~ m/^w(\d+)$/s) {
+      my $a = 0;
+      my $b = $1 % @s;
+      ($s[$a], $s[$b]) = ($s[$b], $s[$a]);
+    }
+    else { errorI ("bogus cipher: $c"); }
+  }
 
-  my $ss = ($size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
-            $size > 1024 ? sprintf ("%dK", $size/1024) :
-            "$size bytes");
-  $ss .= ", $w &times; $h" if ($w && $h);
+  $signature = join ('', @s);
+
+  my $L1 = length($orig);
+  my $L2 = length($signature);
+  if ($verbose > 4 && $signature ne $orig) {
+    print STDERR ("$progname: $id: translated sig, $cipher:\n" .
+                  "$progname:  old: $L1: $orig\n" .
+                  "$progname:  new: $L2: $signature\n");
+  }
+
+  return $signature;
+}
 
 
-  # I had hoped that transforming
-  #
-  #   http://v5.lscache2.googlevideo.com/videoplayback?ip=....
-  #
-  # into
-  #
-  #   http://v5.lscache2.googlevideo.com/videoplayback/Video+Title.mp4?ip=....
-  #
-  # would trick Safari into downloading the file with a sensible file name.
-  # Normally Safari picks the target file name for a download from the final
-  # component of the URL.  Unfortunately that doesn't work in this case,
-  # because the "videoplayback" URL is sending
-  #
-  #   Content-Disposition: attachment; filename="video.mp4"
-  #
-  # which overrides my trickery, and always downloads it as "video.mp4"
-  # regardless of what the final component in the path is.
-  #
-  # However, if you do "Save Link As..." on this link, the default file
-  # name is sensible!  So it takes two clicks to download it instead of
-  # one.  Oh well, I can live with that.
-  #
-  # UPDATE: If we do "proxy=" instead of "redir=", then all the data moves
-  # through this CGI, and it will insert a proper Content-Disposition header.
-  # However, if the CGI is not hosted on localhost, then this will first
-  # download the entire video to your web host, then download it again to
-  # your local machine.
-  #
-  # Sadly, Vimeo is now doing user-agent sniffing on the "moogaloop/play/"
-  # URLs, so this is now the *only* way to make it work: if you try to
-  # download one of those URLs with a Safari/Firefox user-agent, you get
-  # a "500 Server Error" back.
-  #
-  my $proxy_p = 1;
-  utf8::encode ($file);   # Unpack wide chars into multi-byte UTF-8.
-  $url = ($ENV{SCRIPT_NAME} . 
-          '/' . url_quote($file) .
-          '?' . ($proxy_p? 'proxy' : 'redir') .
-          '=' . url_quote($url));
-  $url = html_quote ($url);
-  $title = html_quote ($title);
+# Total kludge that downloads the current html5player, parses the JavaScript,
+# and intuits what the current cipher is.  Normally we go by the list of
+# known ciphers above, but if that fails, we try and do it the hard way.
+#
+sub guess_cipher(;$$) {
+  my ($cipher_id, $selftest_p) = @_;
 
-  # New HTML5 feature: <A DOWNLOAD=...> seems to be a client-side way of
-  # doing the same thing that "Content-Disposition: attachment; filename="
-  # does.  Unfortunately, even with this, Safari still opens the .MP4 file
-  # after downloading instead of just saving it.
+  $verbose = 2 if ($verbose == 1 && !$selftest_p);
 
-  binmode (STDOUT, ':utf8');
-  print STDOUT
-    ("Content-Type: text/html; charset=UTF-8\n" .
-     "\n" .
-     "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\"\n" .
-     "	  \"http://www.w3.org/TR/html4/loose.dtd\">\n" .
-     "<HTML>\n" .
-     " <HEAD>\n" .
-     "  <TITLE>Download \"$title\"</TITLE>\n" .
-     #  "<META HTTP-EQUIV=\"Refresh\" CONTENT=\"1;url=$url\" />\n" .
-     " <STYLE TYPE=\"text/css\">\n" .
-     "  body { font-family: Arial,Helvetica,sans-serif; font-size: 12pt;\n" .
-     "         color: #000; background: #FFF; }\n" .
-     "  a { font-weight: bold; }\n" .
-     " </STYLE>\n" .
-     " </HEAD>\n" .
-     " <BODY>\n" .
-     "  Save Link As:&nbsp; " .
-     "  <A HREF=\"$url\" DOWNLOAD=\"$title\">$title</A>, " .
-     "  <NOBR>$ss.</NOBR>\n" .
-     " </BODY>\n" .
-     "</HTML>\n");
+
+  my $url = "http://www.youtube.com/";
+  my ($http, $head, $body);
+
+  if (! $cipher_id) {
+    ($http, $head, $body) = get_url ($url);		# Get home page
+    check_http_status ($url, $http, 2);
+    my ($id) = ($body =~ m@/watch\?v=([^\"\'/<>]+)@si);
+    errorI ("unparsable") unless $id;
+    $url .= "/watch\?v=$id";
+
+    ($http, $head, $body) = get_url ($url);		# Get random video
+    check_http_status ($url, $http, 2);
+
+    $body =~ s/\\//gs;
+    ($cipher_id) = ($body =~ m@/jsbin\\?/html5player-(.+?)\.js@s);
+    errorI ("unparsable: $url") unless $cipher_id;
+  }
+
+  $url = "http://s.ytimg.com/yts/jsbin/html5player-$cipher_id.js";
+  ($http, $head, $body) = get_url ($url);
+  check_http_status ($url, $http, 2);
+
+  my ($date) = ($head =~ m/^Last-Modified:\s+(.*)$/mi);
+  $date =~ s/^[A-Z][a-z][a-z], (\d\d? [A-Z][a-z][a-z] \d{4}).*$/$1/s;
+
+  my $v = '[a-zA-Z][a-z\d]*';	# JS variable
+
+  # Since the script is minimized and obfuscated, we can't search for
+  # specific function names, since those change. Instead we match the
+  # code structure.
+  #
+  # Note that the obfuscator sometimes does crap like y="split",
+  # so a[y]("") really means a.split("")
+
+
+  # Find "C" in this: var A = B.sig || C (B.s)
+  my (undef, $fn) = ($body =~ m/$v = ( $v ) \.sig \|\| ( $v ) \( \1 \.s \)/sx);
+  errorI ("$cipher_id: unparsable: $url") unless $fn;
+
+  # Find body of function C(D) { ... }
+  ($fn) = ($body =~ m@\b function \s+ $fn \s* \( $v \) \s* { ( .*? ) }@sx);
+  errorI ("$cipher_id: unparsable fn") unless $fn;
+
+  my $fn2 = $fn;
+
+  # They inline the swapper if it's used only once.
+  # Convert "var b=a[0];a[0]=a[63%a.length];a[63]=b;" to "a=swap(a,63);".
+  $fn2 =~ s@
+            var \s ( $v ) = ( $v ) \[ 0 \];
+            \2 \[ 0 \] = \2 \[ ( \d+ ) % \2 \. length \];
+            \2 \[ \3 \]= \1 ;
+           @$2=swap($2,$3);@sx;
+
+  my @cipher = ();
+  foreach my $c (split (/\s*;\s*/, $fn2)) {
+    if      ($c =~ m@^ ( $v ) = \1 . $v \(""\) $@sx) {         # A=A.split("");
+    } elsif ($c =~ m@^ ( $v ) = \1 .  $v \(\)  $@sx) {         # A=A.reverse();
+      push @cipher, "r";
+    } elsif ($c =~ m@^ ( $v ) = \1 . $v \( (\d+) \) $@sx) {    # A=A.slice(N);
+      push @cipher, "s$2";
+    } elsif ($c =~ m@^ ( $v ) = $v \( \1 , ( \d+ ) \) $@sx) {  # A=swap(A,N);
+      push @cipher, "w$2";
+    } elsif ($c =~ m@^ return \s+ $v \. $v \(""\) $@sx) { # return A.join("");
+    } else {
+      errorI ("$cipher_id: unparsable: $c\n\tin: $fn");
+    }
+  }
+  my $cipher = join(' ', @cipher);
+
+  if ($selftest_p) {
+    return $cipher if defined($ciphers{$cipher_id});
+    $verbose = 2 if ($verbose < 2);
+  }
+
+  if ($verbose > 1) {
+    my $c2 = "  '$cipher_id' => '$cipher',";
+    $c2 = sprintf ("%-52s# %s", $c2, $date);
+    auto_update($c2) if ($selftest_p && $selftest_p == 2);
+    print STDERR "$progname: current cipher is:\n$c2\n";
+  }
+
+  return $cipher;
+}
+
+
+# Tired of doing this by hand. Crontabbed self-modifying code!
+#
+sub auto_update($) {
+  my ($cipher_line) = @_;
+
+  open (my $in, '<', $progname0) || error ("$progname0: $!");
+  local $/ = undef;  # read entire file  
+  my ($body) = <$in>;
+  close $in;
+
+  $body =~ s@(\nmy %ciphers = .*?)(\);)@$1$cipher_line\n$2@s ||
+    error ("auto-update: unable to splice");
+
+  open (my $out, '>', $progname0) || error ("$progname0: $!");
+  print $out $body;
+  close $out;
+  print STDERR "$progname: auto-updated $progname0\n";
+
+  my ($dir) = $ENV{HOME} . '/www/hacks';
+  system ("cd '$dir' && cvs -q commit -m 'cipher auto-update' '$progname'");
+}
+
+
+# For verifying that decipher_sig() implements exactly the same transformation
+# that the JavaScript implementations do.
+#
+sub decipher_selftest() {
+  my $tests = {
+   'UNKNOWN 88' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGHIJ.' .		# 88
+   'LMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvw' =>
+   'Pqponmlkjihgfedrba`_u]\\[ZYXWVUTSRQcONML.' .
+   'JIHGFEDCBA@?>=<;:9876543210/x-#+*)(\'&%$",',
+
+   'vflmOfVEX' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGHIJ.' .		# 87
+   'LMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuv' =>
+   '^rqponmlkjihgfedcba`_s]\\[ZYXWVU SRQPONML.' .
+   'JIHGFEDCBA@?>=<;:9876543210/x-,+*)(\'&%$#',
+
+   'vfl_ymO4Z' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGHI.' .		# 86
+   'KLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstu' =>
+   '"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGHI.' .
+   'KLMNOPQRSTUVWXYZ[\]^r`abcdefghijklmnopq_',
+
+   'vfltM3odl' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGHI.' .		# 85
+   'KLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrst' =>
+   'lrqponmskjihgfedcba`_^] [ZYXWVUTS!QPONMLK.' .
+   'IHGFEDCBA@?>=<;:9876543210/x-,+*)(\'&%$#',
+
+   'UNKNOWN 84' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGH.' .		# 84
+   'JKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrs' =>
+   'srqponmlkjihgfedcba`_^]\\[ZYXWVUTSRQPONMLKJ.' .
+   'HGFE"CBA@?>=<;#9876543210/x-,+*)(\'&%$:',
+
+   'UNKNOWN 83' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFGH.' .		# 83
+   'JKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqr' =>
+   'Tqponmlkjihgfedcba`_^]\\[ZYX"VUrSRQPONMLKJ.' .
+   'HGFEWCBA@?>=<;:9876543210/x-,+*)(\'&%$#D',
+
+   'UNKNOWN 82' . "\t" .
+   ' !"#$%&\'()*+,-x/0123456789:;<=>?@ABCDEFG.' .		# 82
+   'IJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopq' =>
+   'Donmlkjihgfedqba`_^]\\[ZYXWVUTSRQPONMLKJIAGFE.' .
+   'C c@?>=<;:9876543210/x-,+*)(\'&%$#"!B',
+
+   'vflmOfVEX' . "\t" .
+   '5AEEAE0EC39677BC65FD9021CCD115F1F2DBD5A59E4.' .		# Real examples
+   'C0B243A3E2DED6769199AF3461781E75122AE135135' =>		# 87
+   '931EA22157E1871643FA9519676DED253A342B0C.' .
+   '4E95A5DBD2F1F511DCC1209DF56CB77693CE0EAE',
+
+   'vflmOfVEX' . "\t" .
+   '7C03C0B9B947D9DCCB27CD2D1144BA8F91B7462B430.' .		# 87
+   '8CFE5FA73DDE66DCA33BF9F902E09B160BC42924924' =>
+   '32924CB061B90E209F9FB43ACD66EDD77AF5EFC8.' .
+   '034B2647B19F8AB4411D2DC72BCCD9D749B9B0C3',
+
+   'vflmOfVEX' . "\t" .
+   '38A48AA6FAC88C2240DEBE5F74F4E62DC1F0828E990.' .		# 87
+   '53B824774161BD7CE735CA84963AA17B002D1901901' =>
+   '3091D200B71AA36948AC517EC7DB161377428B35.' .
+   '099E8280F1CD26E4F47F5EBED0422C88CAF6AA84',
+
+   # This one seems to be used by "content restricted" videos?
+   'vfl_ymO4Z' . "\t" .
+   '7272B1BA35548BA3939F9CE39C4E72A98BB78ABB28.' .		# 86
+   '560A7424D42FF070C115935232F8BDB8A1F3E05C05C' =>
+   '72B1BA35548BA3939F9CE39C4E72A98BB78ABB28.' .
+   '560A7424D42FF070C115C35232F8BDB8A1F3E059',
+
+   'vflmOfVEX' . "\t" .
+   'CFDEFDEBFC25C1BA6E940A10E4ED8326FD4EDDD0B1A.' .   # 87 from "watch?v="
+   '22F7E77BE9637FBE657ED4FDE0DEE96F06CB011D11D' =>
+#  '61661661658E036DF1B58C21783028FE116E7DB7C62B.' .  # corresponding sig
+#  'D225BE11FBCBD59C62F163A57BF8EC1B47897485E85E' =>  # from "get_video_info"
+   '7110BC60F69EED0EDF4DED56EBF7369CB77E7F22.' .
+   'A1B0DDDE4DF6238DE4E01A049E6AB1C52CFBEDFE',
+  };
+
+  my %verified;
+  foreach my $key (sort { my ($aa, $bb) = ($a, $b);
+                          foreach ($aa, $bb) { s/^.*?\t//s; }
+                          length($aa) == length($bb)
+                          ? $aa cmp $bb
+                          : length($aa) <=> length($bb) }
+                   keys (%$tests)) {
+    my $expect = $tests->{$key};
+    my ($cipher, $sig) = split (/\t/, $key);
+    my $id = $cipher . " " . length ($sig);
+    my $got = decipher_sig ($id, $cipher, $sig);
+    my $L2 = length ($got);
+    if ($expect eq $got) {
+      my $v = ($key !~ m/ABCDEF/s);
+      print STDERR "$id: OK ($L2) $got\n";
+      $verified{$id} = $verified{$id} || $v;
+    }
+    else { print STDERR "$id: FAIL: $got\n"; }
+  }
+  my @un = ();
+  foreach my $k (sort (keys %verified)) {
+    push @un, $k unless $verified{$k};
+  }
+  print STDERR "Unverified: " . join(', ', @un) . "\n";
+}
+
+# decipher_selftest(); exit();
+
+
+
+
+# Example URLs that have use_cipher_signature=True:
+#
+# http://www.youtube.com/watch?v=ktoaj1IpTbw  Chvrches
+# http://www.youtube.com/watch?v=ttqMGYHhFFA  Metric
+# http://www.youtube.com/watch?v=28Vu8c9fDG4  Emika
+# http://www.youtube.com/watch?v=_mDxcDjg9P4  Vampire Weekend
+# http://www.youtube.com/watch?v=8UVNT4wvIGY  Gotye
+# http://www.youtube.com/watch?v=OhhOU5FUPBE  Black Sabbath
+# http://www.youtube.com/watch?v=1ltcDfZMA3U  Maps
+# http://www.youtube.com/watch?v=UxxajLWwzqY  Icona Pop
+#
+# This video is both enciphered and "content warning", so we can't download it.
+# Update: it is no longer "content warning". It used to be but it changed!
+# http://www.youtube.com/watch?v=7wL9NUZRZ4I  Bowie
+# Here's one we can't download:
+# http://www.youtube.com/watch?v=07FYdnEawAQ Timberlake
+
+
+# Replace the signature in the URL, deciphering it first if necessary.
+#
+sub apply_signature($$$$$) {
+  my ($id, $fmt, $url, $cipher, $sig) = @_;
+  if ($sig) {
+    if (defined ($cipher)) {
+      my $o = $sig;
+      $sig = decipher_sig ("$id/$fmt", $cipher, $sig);
+      if ($o ne $sig) {
+        my $n = $sig;
+        my ($a, $b) = split(/\./, $o);
+        my ($c, $d) = split(/\./, $sig);
+        ($a, $b) = ($o,   '') unless defined($b);
+        ($c, $d) = ($sig, '') unless defined($d);
+        my $L1 = sprintf("%d %d.%d", length($o),   length($a), length($b));
+        my $L2 = sprintf("%d %d.%d", length($sig), length($c), length($d));
+        foreach ($o, $n) { s/\./.\n          /gs; }
+        my $s = "cipher:   $cipher\n$L1: $o\n$L2: $n";
+        $error_whiteboard .= "\n" if $error_whiteboard;
+        $error_whiteboard .= "$fmt:       " .
+                             "http://www.youtube.com/watch?v=$id\n$s";
+        if ($verbose > 1) {
+          print STDERR "$progname: $id: deciphered and replaced signature\n";
+          $s =~ s/^([^ ]+)(  )/$2$1/s;
+          $s =~ s/^/$progname:    /gm;
+          print STDERR "$s\n";
+        }
+      }
+    }
+    $url =~ s@&signature=[^&]+@@gs;
+    $url .= '&signature=' . $sig;
+  }
+  return $url;
 }
 
 
 # Parses the video_info XML page and returns several values:
 # - the content type and underlying URL of the video itself;
 # - title, if known
+# - year, if known
 # - width and height, if known
 # - size in bytes, if known
 #
@@ -567,8 +954,14 @@ sub scrape_youtube_url($$$$$) {
 
   my $info_url = ("http://www.youtube.com/get_video_info?video_id=$id" .
                   "&el=vevo");	# Needed for VEVO, works on non-VEVO.
+  # Maybe these instead of Vevo?
+  # '&el=detailpage' .
+  # '&ps=default' .
+  # '&eurl=' .
+  # '&gl=US' .
+  # '&hl=en'
 
-  my ($kind, $urlmap, $body, $fmtlist);
+  my ($kind, $urlmap, $body, $fmtlist, $rental);
 
   my $retries = 5;
   my $err = undef;
@@ -584,11 +977,12 @@ sub scrape_youtube_url($$$$$) {
       unless $urlmap;
     ($kind, $urlmap) = ($body =~ m@&(url_encoded_fmt_stream_map)=([^&]+)@si) 
       unless $urlmap;			   # New nonsense seen in Aug 2011
-    print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
+    print STDERR "$progname: $id: found $kind in JSON\n"
+      if ($kind && $verbose > 1);
 
     ($fmtlist) = ($body =~ m@&fmt_list=([^&]+)@si);
-
-    ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
+    ($title)   = ($body =~ m@&title=([^&]+)@si) unless $title;
+    ($rental)  = ($body =~ m@&ypc_video_rental_bar_text=([^&]+)@si);
 
     last if ($urlmap && $title);
 
@@ -603,10 +997,29 @@ sub scrape_youtube_url($$$$$) {
     sleep (1);
   }
 
+  $err = "can't download rental videos"
+    if (!$err && !$urlmap && $rental);
+
   error ("$progname: $id: $err")
     if $err;
 
-  if (! $urlmap) {
+  # The "use_cipher_signature" parameter is as lie: it is sometimes true
+  # even when the signatures are not enciphered.  The only way to tell
+  # is if the URLs in the map contain "s=" instead of "sig=".
+  #
+  # If the urlmap from get_video_info has an enciphered signature,
+  # we have no way of knowing what cipher is in use!  So in that case
+  # we need to scrape the HTML, since from there we can pull the
+  # cipher ID out of the Javascript.
+  #
+  # This is, in fact, utter lunacy.
+  #
+  # Shitty side effect: it's not possible to download enciphered
+  # videos that are marked as "adults only", since in that case the
+  # HTML doesn't contain the url_map.  The url_map is in get_video_info,
+  # but those signatures don't work.
+
+  if (!$urlmap) {
     # If we couldn't get a URL map out of the info URL, try harder.
 
     if ($body =~ m/private[+\s]video/si) {  # scraping won't work.
@@ -626,17 +1039,19 @@ sub scrape_youtube_url($$$$$) {
     print STDERR "$progname: $id: no fmt_url_map$err.  Scraping HTML...\n"
       if ($verbose > 1);
 
-    return scrape_youtube_url_noembed ($url, $id, $size_p, $force_fmt, $err);
+    return scrape_youtube_url_html ($url, $id, $size_p, $force_fmt, $err);
   }
 
   $urlmap  = url_unquote ($urlmap);
   $fmtlist = url_unquote ($fmtlist || '');
 
   ($title) = ($body =~ m@&title=([^&]+)@si) unless $title;
-  error ("$id: no title in $info_url\n\n####\n$body") unless $title;
+  errorI ("$id: no title in $info_url") unless $title;
   $title = url_unquote($title);
 
-  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $title,
+  my $cipher = undef; # initially assume signature is not enciphered
+  my $year   = undef; # no published date in get_video_info
+  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $cipher, $title, $year,
                                $size_p, $force_fmt);
 }
 
@@ -673,10 +1088,11 @@ sub get_vimeo_year($) {
 
 
 
-# This version parses the HTML, since the video_info page is unavailable
-# for "embedding disabled" videos.
+# This version parses the HTML instead of get_video_info.
+# We need to do that for "embedding disable" videos,
+# and for videos that have enciphered signatures.
 #
-sub scrape_youtube_url_noembed($$$$$) {
+sub scrape_youtube_url_html($$$$$) {
   my ($url, $id, $size_p, $force_fmt, $oerror) = @_;
 
   my ($http, $head, $body) = get_url ($url);
@@ -685,7 +1101,7 @@ sub scrape_youtube_url_noembed($$$$$) {
   my ($args) = ($body =~ m@'SWF_ARGS' *: *{(.*?)}@s);
 
   if (! $args) {    # Sigh, new way as of Apr 2010...
-    ($args) = ($body =~ m@var swfHTML = [^"]*"(.*?)";@si);
+    ($args) = ($body =~ m@var swfHTML = [^\"]*\"(.*?)\";@si);
     $args =~ s@\\@@gs if $args;
     ($args) = ($args =~ m@<param name="flashvars" value="(.*?)">@si) if $args;
     ($args) = ($args =~ m@fmt_url_map=([^&]+)@si) if $args;
@@ -696,53 +1112,96 @@ sub scrape_youtube_url_noembed($$$$$) {
     $args =~ s@\\u0026@&@gs if $args;
     $unquote_p = 0;
   }
+  if (! $args) {    # Sigh, new way as of Jun 2013...
+    ($args) = ($body =~ m@ytplayer\.config\s*=\s*{(.*?)};@s);
+    $args =~ s@\\u0026@&@gs if $args;
+    $unquote_p = 1;
+  }
 
   if (! $args) {
     # Try to find a better error message
     my (undef, $err) = ($body =~ m@<( div | h1 ) \s+
-                                    ( ?: id | class ) = 
-                                   "( ?: error-box |
-                                         yt-alert-content |
-                                         unavailable-message )"
+                                    (?: id | class ) = 
+                                   "(?: error-box |
+                                        yt-alert-content |
+                                        unavailable-message )"
                                    [^<>]* > \s* 
                                    ( [^<>]+? ) \s*
                                    </ \1 > @six);
+    $err = "Rate limited: CAPCHA required"
+      if (!$err && $body =~ m/large volume of requests/);
     if ($err) {
+      my ($err2) = ($body =~ m@<div class="submessage">(.*?)</div>@si);
+      if ($err2) {
+        $err2 =~ s@<button.*$@@s;
+        $err2 =~ s/<[^<>]*>//gs;
+        $err .= ": $err2";
+      }
       $err =~ s/^"[^\"\n]+"\n//s;
       $err =~ s/^&quot;[^\"\n]+?&quot;\n//s;
       $err =~ s/\s+/ /gs;
       $err =~ s/^\s+|\s+$//s;
+      $err =~ s/\.(: )/$1/gs;
+      $err =~ s/\.$//gs;
+
+      my ($title) = ($body =~ m@<title>\s*(.*?)\s*</title>@si);
+      if ($title) {
+        $title = munge_title (url_unquote ($title));
+        $err = "$err ($title)";
+      }
+
+      if ($verbose == 0 &&
+          $err =~ m/(available|blocked it) in your country/i) {
+        # With --quiet, just silently ignore country-locked video failures,
+        # for "youtubefeed".
+        exit (0);
+      }
+
       error ("$id: $err");
     }
   }
 
-  # Check this late, so that we get better error messages, above:
-  # Youtube returns HTTP 404 pages that have real messages in them.
-  #
+  if ($verbose == 0 &&
+      $oerror =~ m/(available|blocked it) in your country/i) {
+    # With --quiet, just silently ignore country-locked video failures,
+    # for "youtubefeed".
+    # (Need to test twice because sometimes we have $args but no fmt_url_map)
+    exit (0);
+  }
+
+  # Sometimes Youtube returns HTTP 404 pages that have real messages in them,
+  # so we have to check the HTTP status late. But sometimes it doesn't return
+  # 404 for pages that no longer exist. Hooray.
+
+  $http = 'HTTP/1.0 404' if ($oerror && $oerror =~ m/has been removed/);
   error ("$id: $http$oerror") unless (check_http_status ($url, $http, 0));
 
-  error ("$id: no SWF_ARGS$oerror") unless $args;
+  errorI ("$id: no ytplayer.config$oerror") unless $args;
 
   my ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": "(.*?)"@s);
   ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": "(.*?)"@s)	    # VEVO
     unless $urlmap;
   ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": "(.*?)"@s)
     unless $urlmap;			   # New nonsense seen in Aug 2011
-  error ("$id: no fmt_url_map$oerror") unless $urlmap;
-  print STDERR "$progname: $id: found $kind\n" if ($kind && $verbose > 1);
+  errorI ("$id: no fmt_url_map$oerror") unless $urlmap;
+  print STDERR "$progname: $id: found $kind in HTML\n"
+    if ($kind && $verbose > 1);
+
+  my ($cipher) = ($body =~ m@/jsbin\\?/html5player-(.+?)\.js@s);
 
   my ($fmtlist) = ($args =~ m@"fmt_list": "(.*?)"@s);
   $fmtlist =~ s/\\//g if $fmtlist;
 
-  if ($unquote_p) {
-    $urlmap = url_unquote($urlmap);
-    $fmtlist = url_unquote ($fmtlist || '');
-  }
+  $fmtlist = url_unquote ($fmtlist || '');
 
   my ($title) = ($body =~ m@<title>\s*(.*?)\s*</title>@si);
   $title = munge_title (url_unquote ($title));
 
-  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $title,
+  my $year = $1   # might be a published date in the HTML.
+    if ($body =~ m@<SPAN \b [^<>]* ID=[\'\"]eow-date[\'\"] [^<>]* >
+                   [^<>]* \b ( \d{4} ) \s* <@gsix);
+
+  return scrape_youtube_url_2 ($id, $urlmap, $fmtlist, $cipher, $title, $year,
                                $size_p, $force_fmt);
 }
 
@@ -750,30 +1209,35 @@ sub scrape_youtube_url_noembed($$$$$) {
 # Parses the given fmt_url_map to determine the preferred URL of the
 # underlying Youtube video.
 #
-sub scrape_youtube_url_2($$$$$$$) {
-  my ($id, $urlmap, $fmtlist, $title, $size_p, $force_fmt) = @_;
+sub scrape_youtube_url_2($$$$$$$$$) {
+  my ($id, $urlmap, $fmtlist, $cipher, $title, $year, $size_p,
+      $force_fmt) = @_;
 
   print STDERR "\n$progname: urlmap:\n" if ($verbose > 3);
 
   my $url;
   my %urlmap;
   my %urlct;
+  my %urlsig;
   my @urlmap;
   my %fmtsizes;
 
-  foreach (split /,/, $fmtlist) {
+  foreach (split (/,/, $fmtlist)) {
     my ($fmt, $size, $a, $b, $c) = split(/\//);  # What are A, B, and C?
     $fmtsizes{$fmt} = $size;
   }
 
-  foreach (split /,/, $urlmap) {
+  foreach (split (/,/, $urlmap)) {
     # Format used to be: "N|url,N|url,N|url"
     # Now it is: "url=...&quality=hd720&fallback_host=...&type=...&itag=N"
-    my ($k, $v, $e, $sig);
+    my ($k, $v, $e, $sig, $sig2);
     if (m/^\d+\|/s) {
       ($k, $v) = m/^(.*?)\|(.*)$/s;
-    } elsif (m/^[a-z][a-z\d_]+=/s) {
-      ($sig) = m/\bsig=([^&]+)/s;
+    } elsif (m/^[a-z][a-z\d_]*=/s) {
+
+      ($sig)  = m/\bsig=([^&]+)/s;	# sig= when un-ciphered.
+      ($sig2) = m/\bs=([^&]+)/s;	# s= when enciphered.
+
       ($k) = m/\bitag=(\d+)/s;
       ($v) = m/\burl=([^&]+)/s;
       $v = url_unquote($v) if ($v);
@@ -784,30 +1248,34 @@ sub scrape_youtube_url_2($$$$$$$) {
       $e = url_unquote($e) if ($e);
     }
 
-    error ("$id: unparsable urlmap entry: $_") unless ($k && $v);
+    errorI ("$id: unparsable urlmap entry: no itag: $_") unless ($k);
+    errorI ("$id: unparsable urlmap entry: no url: $_")  unless ($v);
 
     my ($ct) = ($e =~ m@\bvideo/(?:x-)?([a-z\d]+)\b@si);
 
     my $s = $fmtsizes{$k};
     $s = '?x?' unless $s;
 
-    # As of 27-Sep-2012, the download URLs don't work without this.
-    $v .= "&signature=$sig" if $sig;
-
     $urlmap{$k} = $v;
-    $urlct{$k} = $ct;
+    $urlct{$k}  = $ct;
+    $urlsig{$k} = [ $sig2 ? 1 : 0, $sig || $sig2 ];
+
     push @urlmap, $k;
     print STDERR "\t\t$k $s\t$v$e\n" if ($verbose > 3);
   }
 
   print STDERR "\n" if ($verbose > 3);
 
+
+  # If we're doing all formats, iterate them here now that we know which
+  # ones are available. This ends up parsing things multiple times.
+  #
   if (defined($force_fmt) && $force_fmt eq 'all') {
     foreach my $fmt (sort { $a <=> $b } @urlmap) {
       my $url = "http://www.youtube.com/v/$id";
       my $x = $fmt . "/" . $urlct{$fmt};
       $append_suffix_p = $x;
-      download_video_url ($url, $title, 
+      download_video_url ($url, $title, $year,
                           ($size_p ? $append_suffix_p : 0),
                           undef, 0, $fmt);
     }
@@ -865,14 +1333,14 @@ sub scrape_youtube_url_2($$$$$$$) {
   # Test cases and examples:
   #
   #   http://www.youtube.com/watch?v=wjzyv2Q_hdM
-  #   5-Aug-2011: 38=flv/1080p but 45=webm/720p
-  #   6-Aug-2011: 38 no longer offered
+  #   5-Aug-2011: 38=flv/1080p but 45=webm/720p.
+  #   6-Aug-2011: 38 no longer offered.
   #
   #   http://www.youtube.com/watch?v=ms1C5WeSocY
-  #   6-Aug-2011: embedding disabled, but get_video_info works
+  #   6-Aug-2011: embedding disabled, but get_video_info works.
   #
   #   http://www.youtube.com/watch?v=g40K0dFi9Bo
-  #   10-Sep-2011: 3D, fmts 82 and 84
+  #   10-Sep-2011: 3D, fmts 82 and 84.
   #
   #   http://www.youtube.com/watch?v=KZaVq1tFC9I
   #   14-Nov-2011: 3D, fmts 100 and 102.  This one has 2D images in most
@@ -884,6 +1352,9 @@ sub scrape_youtube_url_2($$$$$$$) {
   #
   #   http://www.youtube.com/watch?v=711bZ_pLusQ
   #   30-May-2012: First sighting of fmt 36, 3gpp/240p.
+  #
+  #   http://www.youtube.com/watch?v=0yyorhl6IjM
+  #   30-May-2013: Here's one that's more than an hour long.
   #
   # The table on http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
   # disagrees with the above to some extent.  Which is more accurate?
@@ -897,7 +1368,7 @@ sub scrape_youtube_url_2($$$$$$$) {
                        );
   my @preferred_fmts = ( 38,  # huge mp4
                          37,  # 1080 mp4
-                         22,  #  720 flv
+                         22,  #  720 mp4
                          45,  #  720 webm
                          35,  #  480 flv
                          44,  #  480 webm
@@ -938,8 +1409,7 @@ sub scrape_youtube_url_2($$$$$$$) {
     push @unk, $k if (!$known_formats{$k});
   }
   print STDERR "$progname: $id: unknown format " . join(', ', @unk) .
-               ": please report URL to jwz\@jwz.org!\n" .
-        "             (make sure you have the latest $progname first.)\n"
+               "$errorI\n"
       if (@unk);
 
   $url =~ s@^.*?\|@@s;  # VEVO
@@ -948,24 +1418,45 @@ sub scrape_youtube_url_2($$$$$$$) {
   my ($w, $h) = ($wh =~ m/^(\d+)x(\d+)$/s) if $wh;
   ($w, $h) = ();  # Turns out these are full of lies.
 
+
+  # If the signature is enciphered, we need to scrape HTML instead, to
+  # get the cipher algorithm.
+
+  my $sig = $urlsig{$fmt};
+  if ($sig->[0]) {  # enciphered
+    if (! $cipher) {
+      print STDERR "$progname: $id: enciphered. Scraping HTML...\n"
+        if ($verbose > 1);
+      $url = 'http://www.youtube.com/watch?v=' . $id;
+      return scrape_youtube_url_html ($url, $id, $size_p, $force_fmt, '');
+    }
+  }
+
+  # Now that we have chosen a URL, make sure it has a signature.
+  $url = apply_signature ($id, $fmt, $url, 
+                          $sig->[0] ? $cipher : undef,
+                          $sig->[1]);
+
+
   # We need to do a HEAD on the video URL to find its size in bytes,
   # and the content-type for the file name.
   #
   my ($http, $head, $body);
   ($http, $head, $body, $url) = get_url ($url, undef, undef, 1);
-  check_http_status ($url, $http, 1);
+  check_http_status ($url, $http, 2);  # internal error if still 403
   my ($ct)   = ($head =~ m/^content-type:\s*([^\s;]+)/mi);
   my ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
 
-  error ("couldn't find video for $url") unless $ct;
+  errorI ("couldn't find video for $url") unless $ct;
 
-  return ($ct, $url, $title, $w, $h, $size);
+  return ($ct, $url, $title, $year, $w, $h, $size);
 }
 
 
 # Parses the HTML and returns several values:
 # - the content type and underlying URL of the video itself;
 # - title, if known
+# - year, if known
 # - width and height, if known
 # - size in bytes, if known
 #
@@ -977,10 +1468,23 @@ sub scrape_vimeo_url($$) {
   my $info_url = "http://vimeo.com/$id?action=download";
   my $referer = $url;
   my $hdrs = ("X-Requested-With: XMLHttpRequest\n");
+
+  #### This is no longer working on some, e.g. http://vimeo.com/70949607
+  #
+  # It may need some new headers. I'm seeing the HTML5 player send:
+  #
+  #   X-Playback-Session-Id: 5B0FE3D3-DBC5-4F95-857F-BEA8D81B674F
+  #   Cookie: html_player=1
+  #   Accept-Encoding: identity
+  #
+  # But I haven't made any of that work yet, even when just trying
+  # to duplicate it from the command line.
+
+
   my ($http, $head, $body) = get_url ($info_url, $referer, $hdrs);
 
   if (!check_http_status ($info_url, $http, 0)) {
-    my ($err) = ($body =~ m@"display_message":"(.*?)"[,}]@si);
+    my ($err) = ($body =~ m@\"display_message\":\"(.*?)\"[,\}]@si);
     $err = 'unknown error' unless $err;
     $err =~ s@<[^<>]*>@@gsi;
     if ($err =~ m/private[+\s]video/si) {
@@ -996,29 +1500,30 @@ sub scrape_vimeo_url($$) {
   $title = de_entify ($title) if $title;
   $title =~ s/^Download //si;
 
-  my ($w, $h, $size);
+  my ($w, $h, $size, $selection);
   my $max = 0;
   $body =~ s@<A \b [^<>]*?
                 HREF=\"([^\"]+)\" [^<>]*?
-                DOWNLOAD="[^\"]+? _(\d+)x(\d+) \.
+                DOWNLOAD=\"[^\"]+? _(\d+)x(\d+) \.
              .*? </A>
              .*? ( \d+ ) \s* MB
             @{
               my $url2;
               ($url2, $w, $h, $size) = ($1, $2, $3, $4);
-              $url2 = "http://vimeo.com$url2" if ($url2 =~ m!^/!s);
+              $url2 = "http://vimeo.com$url2" if ($url2 =~ m|^/|s);
               print STDERR "$progname: $id: ${w}x$h ${size}MB: $url2\n"
                 if ($verbose > 1);
               # If two videos have the same size in MB, pick higher rez.
               my $nn = ($size * 10000000) + ($w * $h);
               if ($nn > $max) {
+                $selection = "${w}x$h ${size}MB: $url";
                 $url = $url2;
                 $max = $nn;
               }
               '';
             }@gsexi;
 
-  print STDERR "$progname: $id: selected ${w}x$h ${size}MB: $url\n"
+  print STDERR "$progname: $id: selected ${selection}\n"
     if ($verbose > 1);
 
   # HEAD doesn't work, so just do a GET but don't read the body.
@@ -1027,30 +1532,49 @@ sub scrape_vimeo_url($$) {
 
   ($ct)   = ($head =~ m/^content-type:\s*([^\s;]+)/mi);
   ($size) = ($head =~ m/^content-length:\s*(\d+)/mi);
+  my $year = undef; # no published date in HTML
 
-  error ("couldn't find video for $url") unless $ct;
+  errorI ("couldn't find video for $url") unless $ct;
 
-  return ($ct, $url, $title, $w, $h, $size);
+  return ($ct, $url, $title, $year, $w, $h, $size);
 }
 
 
 sub scrape_vimeo_private($$) {
   my ($url, $id) = @_;
 
-  my ($http, $head, $body) = get_url ($url);
-  return undef unless check_http_status ($url, $http, 0);
+  # Grab the iframe embed document, because the other page is 404.
+  $url = "http://player.vimeo.com/video/$id/";
+
+  # Send a referer to dodge "The creator of this video has not given you
+  # permission to embed it on this domain."
+  my $referer = $url;
+
+  # Note: while "http://player.vimeo.com/video/$id/" contains a signature,
+  # it is one that doesn't work!  We need the one from the main HTML page.
+  # Also note that User-Agent must be the same on both this URL and the
+  # play_redirect URL: it seems to be part of what the signature signs.
+  #  $url = "http://vimeo.com/$id";
+  # No longer true? Instead, look at the URL inside "files" which has sig.
+
+  my ($http, $head, $body) = get_url ($url, $referer);
+  if (! check_http_status ($url, $http, 0)) {
+    errorI ("$id: $http: scraping private video failed");
+  }
 
   my ($title) = ($body =~ m@<title>\s*([^<>]+?)\s*</title>@si);
   my ($sig)   = ($body  =~ m@"signature":"([a-fA-F\d]+)"@s);
   my ($time)  = ($body  =~ m@"timestamp":"?(\d+)"?@s);
-  my ($files) = ($body  =~ m@"files":{(.*?)}@s);
+  my ($files) = ($body  =~ m@("hd":{.*?})@s);
+     ($files) = ($body  =~ m@("sd":{.*?})@s) unless $files;
+     ($files) = ($body  =~ m@"files":{(.*?)\]}@s) unless $files;
 
-  error ("$id: vimeo HTML unparsable") unless ($sig && $time && $files);
+  errorI ("$id: vimeo HTML unparsable") unless ($sig && $time && $files);
 
   # Have seen "hd", "sd" and "mobile" for $qual.  Hopefully they are sorted.
-  my ($codec, $qual) = ($files =~ m@^\"([^\"]+)\":\[\"([^\"]+)\"@si);
+  my ($codec, $qual) = ($files =~ m@^\"([^\"]+)\":[\[\{]\"([^\"]+)\"@si);
 
-  error ("$id: vimeo HTML unparsable") unless ($qual && $codec);
+  errorI ("$id: vimeo HTML unparsable: no qual/codec") unless ($qual && $codec);
 
   $url = ('http://player.vimeo.com/play_redirect' .
           '?clip_id=' . $id .
@@ -1060,6 +1584,10 @@ sub scrape_vimeo_private($$) {
           '&sig='     . $sig .
           '&type=html5_desktop_local');
 
+  # Hmm, let's just try to use this one directly.
+  # Sometimes the "sd" and "mobile" entries work but "hd" doesn't, WTF.
+  $url = $1 if ($files =~ m@"url":"([^\"]+)"@s);
+
   my $ct = ($codec =~ m@mov@si  ? 'video/quicktime' :
             $codec =~ m@flv@si  ? 'video/flv' :
             $codec =~ m@webm@si ? 'video/webm' :
@@ -1067,13 +1595,16 @@ sub scrape_vimeo_private($$) {
   my $w    = undef;
   my $h    = undef;
   my $size = undef;
+  my $year = undef;
 
-  return ($ct, $url, $title, $w, $h, $size);
+  return ($ct, $url, $title, $year, $w, $h, $size);
 }
 
 
 sub munge_title($) {
   my ($title) = @_;
+
+  return $title unless defined($title);
 
   utf8::decode ($title);  # Pack multi-byte UTF-8 back into wide chars.
 
@@ -1094,8 +1625,10 @@ sub munge_title($) {
   # Do some simple rewrites / clean-ups to dumb things people do
   # when titling their videos.
 
-  $title =~ s/\s*[[(][^[(]*?\s*\b(video|hd|hq)[])]\s*$//gsi; # yes I know it's a video
+  # yes I know it's a video
+  $title =~ s/\s*[\[\(][^\[\(]*?\s*\b(video|hd|hq|high quality)[\]\)]\s*$//gsi;
   $title =~ s@\[audio\]@ @gsi;
+  $title =~ s@\[mv\]@ @gsi;
   $title =~ s/(official\s*)?(music\s*)?video(\s*clip)?\b//gsi;
   $title =~ s/\s\(official\)//gsi;
   $title =~ s/[-:\s]*SXSW[\d ]*Showcas(e|ing) Artist\b//gsi;
@@ -1104,8 +1637,8 @@ sub munge_title($) {
   $title =~ s/ - Director - .*$//si;
   $title =~ s/\bHD\s*(720|1080)\s*[pi]\b//si;
 
-  $title =~ s/'s\s+['"](.*)['"]/ - $1/gsi;        #  foo's "bar" => foo - bar
-  $title =~ s/^([^"]+) ['"](.*)['"]/$1 - $2/gsi;  #  foo "bar" => foo - bar
+  $title =~ s/'s\s+[\'\"](.*)[\'\"]/ - $1/gsi;      # foo's "bar" => foo - bar
+  $title =~ s/^([^\"]+) [\'\"](.*)[\'\"]/$1 - $2/gsi; # foo "bar" => foo - bar
 
   $title =~ s/ -+ *-+ / - /gsi;   # collapse dashes to a single dash
   $title =~ s/~/-/gsi;
@@ -1117,8 +1650,26 @@ sub munge_title($) {
   $title =~ s/\s+/ /gs;
   $title =~ s/^\s+|\s+$//gs;
 
-  $title =~ s/\b([[:alpha:]])([[:alnum:]\']+)\b/$1\L$2/gsi   # capitalize words
-    if ($title !~ m/[[:lower:]]/s);                    # if it's all upper case
+  # If there are no dashes, insert them after the leading upper case words.
+  $title =~ s/^((?:[[:upper:]\d]+\s+)+)(.+)/$1-- $2/si
+    unless ($title =~ m/ -/s);
+
+  # If there are no dashes, insert them before the trailing upper case words.
+  $title =~ s/^(.+?)((\s+[[:upper:]\d]+)+)$/$1 --$2/si
+    unless ($title =~ m/ -/s);
+
+  # Capitalize all fully-upper-case words.
+  $title =~ s/\b([[:upper:]])([[:upper:]\d]+)\b/$1\L$2/gsi;
+
+# $title =~ s/\b([[:alpha:]])([[:alnum:]\']+)\b/$1\L$2/gsi   # capitalize words
+#   if ($title !~ m/[[:lower:]]/s);                    # if it's all upper case
+
+
+  $title =~ s/ \(\)//gs;
+  $title =~ s/ \[\]//gs;
+
+  # Don't allow the title to begin with "." or it writes a hidden file.
+  $title =~ s/^([.,\s])/_$1/gs;
 
   return $title;
 }
@@ -1137,9 +1688,93 @@ sub file_exists_with_suffix($) {
 }
 
 
-sub download_video_url($$$$$$);
-sub download_video_url($$$$$$) {
-  my ($url, $title, $size_p, $progress_p, $cgi_p, $force_fmt) = @_;
+# Generates HTML output that provides a link for direct downloading of
+# the highest-resolution underlying video.  The HTML also lists the
+# video dimensions and file size, if possible.
+#
+sub cgi_output($$$$$$$) {
+  my ($title, $file, $id, $url, $w, $h, $size) = @_;
+
+  if (! ($w && $h)) {
+    ($w, $h, $size) = video_url_size ($title, $id, $url);
+  }
+
+  $size = -1 unless defined($size);
+
+  my $ss = ($size <= 0        ? '<SPAN CLASS="err">size unknown</SPAN>' :
+            $size > 1024*1024 ? sprintf ("%dM", $size/(1024*1024)) :
+            $size > 1024      ? sprintf ("%dK", $size/1024) :
+            "$size bytes");
+  my $wh = ($w && $h ? "$w &times; $h" : "resolution unknown");
+  $wh = '<SPAN CLASS="err">' . $wh . '</SPAN>'
+    if (($w || 0) < 1024);
+  $ss .= ", $wh";
+
+
+  # I had hoped that transforming
+  #
+  #   http://v5.lscache2.googlevideo.com/videoplayback?ip=....
+  #
+  # into
+  #
+  #   http://v5.lscache2.googlevideo.com/videoplayback/Video+Title.mp4?ip=....
+  #
+  # would trick Safari into downloading the file with a sensible file name.
+  # Normally Safari picks the target file name for a download from the final
+  # component of the URL.  Unfortunately that doesn't work in this case,
+  # because the "videoplayback" URL is sending
+  #
+  #   Content-Disposition: attachment; filename="video.mp4"
+  #
+  # which overrides my trickery, and always downloads it as "video.mp4"
+  # regardless of what the final component in the path is.
+  #
+  # However, if you do "Save Link As..." on this link, the default file
+  # name is sensible!  So it takes two clicks to download it instead of
+  # one.  Oh well, I can live with that.
+  #
+  # UPDATE: If we do "proxy=" instead of "redir=", then all the data moves
+  # through this CGI, and it will insert a proper Content-Disposition header.
+  # However, if the CGI is not hosted on localhost, then this will first
+  # download the entire video to your web host, then download it again to
+  # your local machine.
+  #
+  # Sadly, Vimeo is now doing user-agent sniffing on the "moogaloop/play/"
+  # URLs, so this is now the *only* way to make it work: if you try to
+  # download one of those URLs with a Safari/Firefox user-agent, you get
+  # a "500 Server Error" back.
+  #
+  my $proxy_p = 1;
+  utf8::encode ($file);   # Unpack wide chars into multi-byte UTF-8.
+  $url = ($ENV{SCRIPT_NAME} . 
+          '/' . url_quote($file) .
+          '?' . ($proxy_p? 'proxy' : 'redir') .
+          '=' . url_quote($url));
+  $url = html_quote ($url);
+  $title = html_quote ($title);
+
+  # New HTML5 feature: <A DOWNLOAD=...> seems to be a client-side way of
+  # doing the same thing that "Content-Disposition: attachment; filename="
+  # does.  Unfortunately, even with this, Safari still opens the .MP4 file
+  # after downloading instead of just saving it.
+
+  my $body = ($html_head .
+              "  Save Link As:&nbsp; " .
+              "  <A HREF=\"$url\" DOWNLOAD=\"$title\">$title</A>, " .
+              "  <NOBR>$ss.</NOBR>\n" .
+              $html_tail);
+  $body =~ s@(<TITLE>)[^<>]*@$1Download "$title"@gsi;
+  print STDOUT ("Content-Type: text/html; charset=UTF-8\n" .
+                "\n" .
+                $body);
+}
+
+
+sub download_video_url($$$$$$$);
+sub download_video_url($$$$$$$) {
+  my ($url, $title, $year, $size_p, $progress_p, $cgi_p, $force_fmt) = @_;
+
+  $error_whiteboard = '';  # reset  per-URL diagnostics
 
   # Add missing "http:"
   $url = "http://$url" unless ($url =~ m@^https?://@si);
@@ -1151,8 +1786,7 @@ sub download_video_url($$$$$$) {
   # "/...#NNNNN" => "/NNNNN"
   $url =~ s@^(https?://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
 
-  # No https.
-  $url =~ s@^https:@http:@s;
+  $url =~ s@^https:@http:@s;	# No https.
 
   my ($id, $site, $playlist_p);
 
@@ -1171,20 +1805,20 @@ sub download_video_url($$$$$$) {
 
   # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
   } elsif ($url =~ m@^https?:// (?:[a-z]+\.)?
-                     (youtube) (?:-nocookie)? (?:\.googleapis)? \.com/
+                     (youtube) (?:-nocookie)? (?:\.googleapis)? \.com/+
                      (?: (?: watch )? (?: \? | \#! ) v= |
                          v/ |
                          embed/ |
                          .*? &v= |
                          [^/\#?&]+ \#p(?: /[a-zA-Z\d] )* /
                      )
-                     ([^<>?&,'"]+) ($|&) @sx) {
+                     ([^<>?&,\'\"]+) ($|[?&]) @sx) {
     ($site, $id) = ($1, $2);
     $url = "http://www.$site.com/watch?v=$id";
 
   # Youtube "/verify_age" URLs.
   } elsif ($url =~ 
-           m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/
+           m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/+
 	     .* next_url=([^&]+)@sx ||
            $url =~ m@^https?://(?:[a-z]+\.)?google\.com/
                      .* service = (youtube)
@@ -1200,7 +1834,7 @@ sub download_video_url($$$$$$) {
       $url =~ s@&.*$@@s;
     }
     $url = "http://www.$site.com$url" if ($url =~ m@^/@s);
-    return download_video_url ($url, $title, $size_p, undef, $cgi_p,
+    return download_video_url ($url, $title, $year, $size_p, undef, $cgi_p,
                                $force_fmt);
 
   # Youtube "/user" and "/profile" URLs.
@@ -1220,8 +1854,9 @@ sub download_video_url($$$$$$) {
     ($site, $id) = ($1, $2);
 
   # Vimeo /channels/name/NNNNNN URLs.
+  # Vimeo /ondemand/name/NNNNNN URLs.
   } elsif ($url =~ 
-           m@^https?://(?:[a-z]+\.)?(vimeo)\.com/channels/[^/]+/(\d+)@s) {
+           m@^https?://(?:[a-z]+\.)?(vimeo)\.com/[^/]+/[^/]+/(\d+)@s) {
     ($site, $id) = ($1, $2);
 
   # Vimeo /moogaloop.swf?clip_id=NNNNN
@@ -1268,14 +1903,14 @@ sub download_video_url($$$$$$) {
 
   my ($ct, $w, $h, $size, $title2);
 
-  # Get the video metadata (URL of underlying video, title, and size)
+  # Get the video metadata (URL of underlying video, title, year and size)
   #
   if ($site eq 'youtube') {
-    ($ct, $url, $title2, $w, $h, $size) = 
+    ($ct, $url, $title2, $year, $w, $h, $size) = 
       scrape_youtube_url ($url, $id, $title, $size_p, $force_fmt);
   } else {
     error ("--fmt only works with Youtube") if (defined($force_fmt));
-    ($ct, $url, $title2, $w, $h, $size) = scrape_vimeo_url ($url, $id);
+    ($ct, $url, $title2, $year, $w, $h, $size) = scrape_vimeo_url ($url, $id);
   }
 
   # Set the title unless it was specified on the command line with --title.
@@ -1285,14 +1920,17 @@ sub download_video_url($$$$$$) {
 
     # Add the year to the title unless there's a year there already.
     #
-    my $year = ($site eq 'youtube' ? get_youtube_year ($id) :
-                $site eq 'vimeo'   ? get_vimeo_year ($id)   : undef);
-    $year = undef
-      if ($year && $year == (localtime())[5]+1900); # Omit this year
-    $title .= " ($year)" 
+    if ($title !~ m@ \(\d{4}\)@si) {  # skip if already contains " (NNNN)"
+      if (! $year) {
+        $year = ($site eq 'youtube' ? get_youtube_year ($id) :
+                 $site eq 'vimeo'   ? get_vimeo_year ($id)   : undef);
+      }
       if ($year && 
-          $title !~ m@\b$year\b@si &&  # already contains that year
-          $title !~ m@ \(\d{4}}\)@si); # already contains "(NNNN)"
+          $year  != (localtime())[5]+1900 &&   # Omit this year
+          $title !~ m@\b$year\b@s) {		 # Already in the title
+        $title .= " ($year)";
+      }
+    }
   }
 
   my $file = de_entify ("$title$suf");
@@ -1331,10 +1969,10 @@ sub download_video_url($$$$$$) {
 
     print STDERR "$progname: downloading \"$title\"\n" if ($verbose);
 
-    my $expect_bytes = ($progress_p ? $size : undef);
+    my $expect_bytes = ($size ? ($progress_p ? $size : -$size) : undef);
     my ($http, $head, $body) = get_url ($url, undef, undef, 0, $file, undef,
                                         undef, $expect_bytes);
-    check_http_status ($url, $http, 1);
+    check_http_status ($url, $http, 2);  # internal error if still 403
 
     if (! -s $file) {
       unlink ($file);
@@ -1392,15 +2030,16 @@ sub download_playlist($$$$$) {
     foreach my $entry (@entries) {
       my ($t2) = ($entry =~ m@<title>\s*([^<>]+?)\s*</title>@si);
       my ($u2, $id2) =
-        ($entry =~ m@<link.*?href=['"]
+        ($entry =~ m@<link.*?href=[\'\"]
                      (https?://[a-z.]+/
                      (?: watch (?: \? | \#! ) v= | v/ | embed/ )
-                     ([^<>?&,'"]+))@sxi);
+                     ([^<>?&,\'\"]+))@sxi);
       $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
+      my $year = undef;
 
       eval {
         $noerror = 1;
-        download_video_url ($u2, $t2, $size_p, undef, $cgi_p, undef);
+        download_video_url ($u2, $t2, $year, $size_p, undef, $cgi_p, undef);
         $noerror = 0;
       };
       print STDERR "$progname: $@" if $@;
@@ -1476,7 +2115,7 @@ sub do_cgi() {
   } elsif ($url) {
     error ("extraneous crap in URL: $ENV{PATH_INFO}")
       if (defined($ENV{PATH_INFO}) && $ENV{PATH_INFO} ne "");
-    download_video_url ($url, undef, 0, undef, 1, undef);
+    download_video_url ($url, undef, undef, 0, undef, 1, undef);
 
   } else {
     error ("no URL specified for CGI");
@@ -1493,6 +2132,9 @@ sub usage() {
 
 sub main() {
 
+  binmode (STDOUT, ':utf8');   # video titles in messages
+  binmode (STDERR, ':utf8');
+
   # historical suckage: the environment variable name is lower case.
   $http_proxy = $ENV{http_proxy} || $ENV{HTTP_PROXY};
 
@@ -1506,17 +2148,20 @@ sub main() {
   my $size_p = 0;
   my $progress_p = 0;
   my $fmt = undef;
+  my $expect = undef;
+  my $guessp = 0;
 
   while ($#ARGV >= 0) {
     $_ = shift @ARGV;
     if (m/^--?verbose$/)     { $verbose++; }
     elsif (m/^-v+$/)         { $verbose += length($_)-1; }
     elsif (m/^--?q(uiet)?$/) { $verbose--; }
-    elsif (m/^--?title$/)    { $title = shift @ARGV; }
-    elsif (m/^--?size$/)     { $size_p++; }
-    elsif (m/^--?suffix$/)   { $append_suffix_p++; }
     elsif (m/^--?progress$/) { $progress_p++; }
-    elsif (m/^--?fmt$/)      { $fmt = shift @ARGV; }
+    elsif (m/^--?suffix$/)   { $append_suffix_p++; }
+    elsif (m/^--?title$/)    { $expect = $_; $title = shift @ARGV; }
+    elsif (m/^--?size$/)     { $expect = $_; $size_p++; }
+    elsif (m/^--?fmt$/)      { $expect = $_; $fmt = shift @ARGV; }
+    elsif (m/^--?guess$/)    { $guessp++; }
     elsif (m/^-./)           { usage; }
     else { 
       s@^//@http://@s;
@@ -1532,7 +2177,16 @@ sub main() {
       my @P = ($title, $fmt, $_);
       push @urls, \@P;
       $title = undef;
+      $expect = undef;
     }
+  }
+
+  error ("$expect applies to the following URLs, so it must come first")
+    if ($expect);
+
+  if ($guessp) {
+    guess_cipher (undef, $guessp - 1);
+    exit (0);
   }
 
   return do_cgi() if (defined ($ENV{REQUEST_URI}));
@@ -1542,7 +2196,7 @@ sub main() {
   usage unless ($#urls >= 0);
   foreach (@urls) {
     my ($title, $fmt, $url) = @$_;
-    download_video_url ($url, $title, $size_p, $progress_p, 0, $fmt);
+    download_video_url ($url, $title, undef, $size_p, $progress_p, 0, $fmt);
   }
 }
 
