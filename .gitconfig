@@ -50,3 +50,4 @@
 	trustExitCode = true
 [push]
 	default = simple
+
