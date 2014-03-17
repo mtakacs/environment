@@ -47,7 +47,7 @@ use Socket;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my $version = q{ $Revision: 1.241 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
+my $version = q{ $Revision: 1.287 $ }; $version =~ s/^[^0-9]+([0-9.]+).*$/$1/;
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -614,6 +614,43 @@ my %ciphers = (
   'vflz9bT3N' => 's1 r w41 r w41 s1 w15',           # 31 Oct 2013
   'vfliZsE79' => 'r s3 w49 s3 r w58 s2 r s2',       # 05 Nov 2013
   'vfljOFtAt' => 'r s3 r s1 r w69 r',               # 07 Nov 2013
+  'vflqSl9GX' => 'w32 r s2 w65 w26 w45 w24 w40 s2', # 14 Nov 2013
+  'vflFrKymJ' => 'w32 r s2 w65 w26 w45 w24 w40 s2', # 15 Nov 2013
+  'vflKz4WoM' => 'w50 w17 r w7 w65',                # 19 Nov 2013
+  'vflhdWW8S' => 's2 w55 w10 s3 w57 r w25 w41',     # 21 Nov 2013
+  'vfl66X2C5' => 'r s2 w34 s2 w39',                 # 26 Nov 2013
+  'vflCXG8Sm' => 'r s2 w34 s2 w39',                 # 02 Dec 2013
+  'vfl_3Uag6' => 'w3 w7 r s2 w27 s2 w42 r',         # 04 Dec 2013
+  'vflQdXVwM' => 's1 r w66 s2 r w12',               # 10 Dec 2013
+  'vflCtc3aO' => 's2 r w11 r s3 w28',               # 12 Dec 2013
+  'vflCt6YZX' => 's2 r w11 r s3 w28',               # 17 Dec 2013
+  'vflG49soT' => 'w32 r s3 r s1 r w19 w24 s3',      # 18 Dec 2013
+  'vfl4cHApe' => 'w25 s1 r s1 w27 w21 s1 w39',      # 06 Jan 2014
+  'vflwMrwdI' => 'w3 r w39 r w51 s1 w36 w14',       # 06 Jan 2014
+  'vfl4AMHqP' => 'r s1 w1 r w43 r s1 r',            # 09 Jan 2014
+  'vfln8xPyM' => 'w36 w14 s1 r s1 w54',             # 10 Jan 2014
+  'vflVSLmnY' => 's3 w56 w10 r s2 r w28 w35',       # 13 Jan 2014
+  'vflkLvpg7' => 'w4 s3 w53 s2',                    # 15 Jan 2014
+  'vflbxes4n' => 'w4 s3 w53 s2',                    # 15 Jan 2014
+  'vflmXMtFI' => 'w57 s3 w62 w41 s3 r w60 r',       # 23 Jan 2014
+  'vflYDqEW1' => 'w24 s1 r s2 w31 w4 w11 r',        # 24 Jan 2014
+  'vflapGX6Q' => 's3 w2 w59 s2 w68 r s3 r s1',      # 28 Jan 2014
+  'vflLCYwkM' => 's3 w2 w59 s2 w68 r s3 r s1',      # 29 Jan 2014
+  'vflcY_8N0' => 's2 w36 s1 r w18 r w19 r',         # 30 Jan 2014
+  'vfl9qWoOL' => 'w68 w64 w28 r',                   # 03 Feb 2014
+  'vfle-mVwz' => 's3 w7 r s3 r w14 w59 s3 r',       # 04 Feb 2014
+  'vfltdb6U3' => 'w61 w5 r s2 w69 s2 r',            # 05 Feb 2014
+  'vflLjFx3B' => 'w40 w62 r s2 w21 s3 r w7 s3',     # 10 Feb 2014
+  'vfliqjKfF' => 'w40 w62 r s2 w21 s3 r w7 s3',     # 13 Feb 2014
+  'ima-vflxBu-5R' => 'w40 w62 r s2 w21 s3 r w7 s3', # 13 Feb 2014
+  'ima-vflrGwWV9' => 'w36 w45 r s2 r',              # 20 Feb 2014
+  'ima-vflCME3y0' => 'w8 s2 r w52',                 # 27 Feb 2014
+  'ima-vfl1LZyZ5' => 'w8 s2 r w52',                 # 27 Feb 2014
+  'ima-vfl4_saJa' => 'r s1 w19 w9 w57 w38 s3 r s2', # 01 Mar 2014
+  'ima-en_US-vflP9269H' => 'r w63 w37 s3 r w14 r',  # 06 Mar 2014
+  'ima-en_US-vflkClbFb' => 's1 w12 w24 s1 w52 w70 s2',# 07 Mar 2014
+  'ima-en_US-vflYhChiG' => 'w27 r s3',              # 10 Mar 2014
+  'ima-en_US-vflWnCYSF' => 'r s1 r s3 w19 r w35 w61 s2',# 13 Mar 2014
 );
 
 sub decipher_sig($$$) {
@@ -675,7 +712,7 @@ sub guess_cipher(;$$) {
     ($http, $head, $body) = get_url ($url);		# Get home page
     check_http_status ($url, $http, 2);
     my ($id) = ($body =~ m@/watch\?v=([^\"\'/<>]+)@si);
-    errorI ("unparsable") unless $id;
+    errorI ("unparsable cipher") unless $id;
     $url .= "/watch\?v=$id";
 
     ($http, $head, $body) = get_url ($url);		# Get random video
@@ -683,7 +720,7 @@ sub guess_cipher(;$$) {
 
     $body =~ s/\\//gs;
     ($cipher_id) = ($body =~ m@/jsbin\\?/html5player-(.+?)\.js@s);
-    errorI ("unparsable: $url") unless $cipher_id;
+    errorI ("unparsable cipher url: $url") unless $cipher_id;
   }
 
   $url = "http://s.ytimg.com/yts/jsbin/html5player-$cipher_id.js";
@@ -693,7 +730,7 @@ sub guess_cipher(;$$) {
   my ($date) = ($head =~ m/^Last-Modified:\s+(.*)$/mi);
   $date =~ s/^[A-Z][a-z][a-z], (\d\d? [A-Z][a-z][a-z] \d{4}).*$/$1/s;
 
-  my $v = '[a-zA-Z][a-z\d]*';	# JS variable
+  my $v = '[\$a-zA-Z][a-zA-Z\d]*';	# JS variable
 
   # Since the script is minimized and obfuscated, we can't search for
   # specific function names, since those change. Instead we match the
@@ -705,7 +742,7 @@ sub guess_cipher(;$$) {
 
   # Find "C" in this: var A = B.sig || C (B.s)
   my (undef, $fn) = ($body =~ m/$v = ( $v ) \.sig \|\| ( $v ) \( \1 \.s \)/sx);
-  errorI ("$cipher_id: unparsable: $url") unless $fn;
+  errorI ("$cipher_id: unparsable cipher js: $url") unless $fn;
 
   # Find body of function C(D) { ... }
   ($fn) = ($body =~ m@\b function \s+ $fn \s* \( $v \) \s* { ( .*? ) }@sx);
@@ -1022,8 +1059,8 @@ sub scrape_youtube_url($$$$$) {
   if (!$urlmap) {
     # If we couldn't get a URL map out of the info URL, try harder.
 
-    if ($body =~ m/private[+\s]video/si) {  # scraping won't work.
-      error ("$id: private video");
+    if ($body =~ m/private[+\s]video|video[+\s]is[+\s]private/si) {
+      error ("$id: private video");  # scraping won't work.
     }
 
     my ($err) = ($body =~ m@reason=([^&]+)@s);
@@ -1118,6 +1155,11 @@ sub scrape_youtube_url_html($$$$$) {
     $unquote_p = 1;
   }
 
+  my $blocked_re = join ('|',
+                         ('(available|blocked it) in your country',
+                          'copyright (claim|grounds)',
+                          'removed by the user'));
+
   if (! $args) {
     # Try to find a better error message
     my (undef, $err) = ($body =~ m@<( div | h1 ) \s+
@@ -1150,22 +1192,14 @@ sub scrape_youtube_url_html($$$$$) {
         $err = "$err ($title)";
       }
 
-      if ($verbose == 0 &&
-          $err =~ m/(available|blocked it) in your country/i) {
-        # With --quiet, just silently ignore country-locked video failures,
-        # for "youtubefeed".
-        exit (0);
-      }
-
-      error ("$id: $err");
+      $oerror = $err;
+      $http = 'HTTP/1.0 404';
     }
   }
 
-  if ($verbose == 0 &&
-      $oerror =~ m/(available|blocked it) in your country/i) {
+  if ($verbose == 0 && $oerror =~ m/$blocked_re/sio) {
     # With --quiet, just silently ignore country-locked video failures,
     # for "youtubefeed".
-    # (Need to test twice because sometimes we have $args but no fmt_url_map)
     exit (0);
   }
 
@@ -1173,17 +1207,24 @@ sub scrape_youtube_url_html($$$$$) {
   # so we have to check the HTTP status late. But sometimes it doesn't return
   # 404 for pages that no longer exist. Hooray.
 
-  $http = 'HTTP/1.0 404' if ($oerror && $oerror =~ m/has been removed/);
-  error ("$id: $http$oerror") unless (check_http_status ($url, $http, 0));
-
-  errorI ("$id: no ytplayer.config$oerror") unless $args;
+  $http = 'HTTP/1.0 404'
+    if ($oerror && $oerror =~ m/$blocked_re/sio);
+  error ("$id: $http$oerror")
+    unless (check_http_status ($url, $http, 0));
+  errorI ("$id: no ytplayer.config$oerror")
+    unless $args;
 
   my ($kind, $urlmap) = ($args =~ m@"(fmt_url_map)": "(.*?)"@s);
   ($kind, $urlmap) = ($args =~ m@"(fmt_stream_map)": "(.*?)"@s)	    # VEVO
     unless $urlmap;
   ($kind, $urlmap) = ($args =~ m@"(url_encoded_fmt_stream_map)": "(.*?)"@s)
     unless $urlmap;			   # New nonsense seen in Aug 2011
-  errorI ("$id: no fmt_url_map$oerror") unless $urlmap;
+  if (! $urlmap) {
+    if ($body =~ m/This video has been age-restricted/s) {
+      error ("$id: enciphered but age-restricted$oerror");
+    }
+    errorI ("$id: no fmt_url_map$oerror");
+  }
   print STDERR "$progname: $id: found $kind in HTML\n"
     if ($kind && $verbose > 1);
 
@@ -1248,6 +1289,9 @@ sub scrape_youtube_url_2($$$$$$$$$) {
       $e = url_unquote($e) if ($e);
     }
 
+    error ("$id: RTMPE DRM: not supported")
+      if (!$v && $urlmap =~ m/rtmpe(=|%3D)yes/s);	# Well, fuck.
+
     errorI ("$id: unparsable urlmap entry: no itag: $_") unless ($k);
     errorI ("$id: unparsable urlmap entry: no url: $_")  unless ($v);
 
@@ -1255,6 +1299,8 @@ sub scrape_youtube_url_2($$$$$$$$$) {
 
     my $s = $fmtsizes{$k};
     $s = '?x?' unless $s;
+
+    $v =~ s/^https:/http:/s;
 
     $urlmap{$k} = $v;
     $urlct{$k}  = $ct;
@@ -1307,6 +1353,8 @@ sub scrape_youtube_url_2($$$$$$$$$) {
   # 44  WebM vp8   756 Kbps  640x480  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
   # 45  WebM vp8  2124 Kbps 1280x720  30.000 fps  Vorbis ?Kbps  2ch 44.10 KHz
   # 46  WebM vp8  4676 Kbps 1920x540 stereo wide  Vorbis ?Kbps  2ch 44.10 KHz
+  # 59  MP4 h.264  743 Kbps  854x480  25.000 fps  AAC 128 Kbps  2ch 48.00 KHz
+  # 78  MP4 h.264  611 Kbps  720x406  25.000 fps  AAC 128 Kbps  2ch 48.00 KHz
   # 82  MP4 h.264  926 Kbps  640x360 stereo       AAC 128 Kbps  2ch 44.10 KHz
   # 83  MP4 h.264  934 Kbps  854x240 stereo       AAC 128 Kbps  2ch 44.10 KHz
   # 84  MP4 h.264 3190 Kbps 1280x720 stereo       AAC 198 Kbps  2ch 44.10 KHz
@@ -1314,6 +1362,17 @@ sub scrape_youtube_url_2($$$$$$$$$) {
   # 100 WebM vp8   357 Kbps  640x360 stereo       Vorbis ?Kbps  2ch 44.10 KHz
   # 101 WebM vp8   870 Kbps  854x480 stereo       Vorbis ?Kbps  2ch 44.10 KHz
   # 102 WebM vp8   864 Kbps 1280x720 stereo       Vorbis ?Kbps  2ch 44.10 KHz
+  # 120  FLV AVC     ?      1280x720              AAC   ? Kbps  ?       ? KHz
+  # 133 MP4 h.264    ?          240p       ? fps     video only
+  # 134 MP4 h.264    ?          360p       ? fps     video only
+  # 135 MP4 h.264    ?          480p       ? fps     video only
+  # 136 MP4 h.264    ?      1280x720       ? fps     video only
+  # 137 MP4 h.264    ?     1920x1080       ? fps     video only
+  # 138 ?
+  # 139 MP4 h.264    ?    audio only               ?     "low"  ?       ? KHz
+  # 140 MP4 h.264    ?    audio only               ?     "med"  ?       ? KHz
+  # 141 MP4 h.264    ?    audio only               ?     "high" ?       ? KHz
+  # 160 MP4 h.264    ?          144p       ? fps   ?    ? Kbps  ?       ? KHz
   #
   # fmt=38/37/22 are only available if upload was that exact resolution.
   #
@@ -1356,22 +1415,27 @@ sub scrape_youtube_url_2($$$$$$$$$) {
   #   http://www.youtube.com/watch?v=0yyorhl6IjM
   #   30-May-2013: Here's one that's more than an hour long.
   #
+  #   http://www.youtube.com/watch?v=pc4ANivCCgs
+  #   15-Nov-2013: First sighting of formats 59 and 78.
+  #
   # The table on http://en.wikipedia.org/wiki/YouTube#Quality_and_codecs
   # disagrees with the above to some extent.  Which is more accurate?
   #
 
-  my %known_formats  = (   0 => 1,   5 => 1,   6 => 1, 13 => 1, 17 => 1,
-                          18 => 1,  22 => 1,  34 => 1, 35 => 1, 36 => 1,
-                          37 => 1,  38 => 1,  43 => 1, 44 => 1, 45 => 1,
-                          46 => 1,  82 => 1,  83 => 1, 84 => 1, 85 => 1,
-                         100 => 1, 101 => 1, 102 => 1,
+  my %known_formats  = (   0 => 1,   5 => 1,   6 => 1,  13 => 1,  17 => 1,
+                          18 => 1,  22 => 1,  34 => 1,  35 => 1,  36 => 1,
+                          37 => 1,  38 => 1,  43 => 1,  44 => 1,  45 => 1,
+                          46 => 1,  59 => 1,  78 => 1,  82 => 1,  83 => 1,
+                          84 => 1, 85 => 1,  100 => 1, 101 => 1, 102 => 1,
                        );
   my @preferred_fmts = ( 38,  # huge mp4
                          37,  # 1080 mp4
                          22,  #  720 mp4
                          45,  #  720 webm
+                         59,  #  480 mp4
                          35,  #  480 flv
                          44,  #  480 webm
+                         78,  #  406 mp4
                          34,  #  360 flv, mostly
                          18,  #  360 mp4, mostly
                        );
@@ -1559,6 +1623,7 @@ sub scrape_vimeo_private($$) {
 
   my ($http, $head, $body) = get_url ($url, $referer);
   if (! check_http_status ($url, $http, 0)) {
+    exit (1) if ($verbose <= 0); # Skip silently if --quiet.
     errorI ("$id: $http: scraping private video failed");
   }
 
@@ -1774,7 +1839,9 @@ sub download_video_url($$$$$$$);
 sub download_video_url($$$$$$$) {
   my ($url, $title, $year, $size_p, $progress_p, $cgi_p, $force_fmt) = @_;
 
-  $error_whiteboard = '';  # reset  per-URL diagnostics
+  $error_whiteboard = '';	# reset per-URL diagnostics
+  $progress_ticks = 0;		# reset progress-bar counters
+  $progress_time = 0;
 
   # Add missing "http:"
   $url = "http://$url" unless ($url =~ m@^https?://@si);
@@ -1803,10 +1870,10 @@ sub download_video_url($$$$$$$) {
     $url = "http://www.$site.com/view_play_list?p=$id";
     $playlist_p = 1;
 
-  # Youtube /watch?v= or /watch#!v= or /v/ URLs. 
+  # Youtube /watch/??v= or /watch#!v= or /v/ URLs. 
   } elsif ($url =~ m@^https?:// (?:[a-z]+\.)?
                      (youtube) (?:-nocookie)? (?:\.googleapis)? \.com/+
-                     (?: (?: watch )? (?: \? | \#! ) v= |
+                     (?: (?: watch/? )? (?: \? | \#! ) v= |
                          v/ |
                          embed/ |
                          .*? &v= |
@@ -2032,7 +2099,7 @@ sub download_playlist($$$$$) {
       my ($u2, $id2) =
         ($entry =~ m@<link.*?href=[\'\"]
                      (https?://[a-z.]+/
-                     (?: watch (?: \? | \#! ) v= | v/ | embed/ )
+                     (?: watch/? (?: \? | \#! ) v= | v/ | embed/ )
                      ([^<>?&,\'\"]+))@sxi);
       $t2 = sprintf("%s: %02d: %s", $title, ++$i, $t2);
       my $year = undef;
