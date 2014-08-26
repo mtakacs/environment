@@ -107,3 +107,6 @@ a takterm20="xterm -vb -fg white -bg black -font 10x20 &"
 a takterm="xterm -vb -fg white -bg black -font 9x15 &"
 
 a synergy="synergyc -f --name MacBook Jolo"
+
+a flush_dns="dscacheutil -flushcache;sudo killall -HUP mDNSResponder"
+
