@@ -263,6 +263,7 @@ path="$path ${MAVEN_HOME}/bin"
 path="$path /usr/local/openldap/bin"
 path="$path /usr/local/mysql/bin"
 path="$path /usr/local/ant/bin"
+path="$path /usr/local/packer"
 path="$path /Applications/Mkvtoolnix.app/Contents/macOS"
 path="$path ."
 
@@ -354,8 +355,17 @@ for class in $classes; do
 done
 
 unset class classes
-
 export CLASSPATH
+
+#################################
+## Evaluate ATLAS
+#################################
+export ATLAS_TOKEN="1ZTN5wAWzFTwCg.atlasv1.qSFrwO2kz6E9O4nEexvyhQ8phP0LtkcAf2LTRerwEKzyWTAiaxzxF2ZrBUzykWNTu9k"
+
+#################################
+## Boot2Docker shim
+#################################
+#eval $(boot2docker shellinit 2>/dev/null)
 
 #############################################################################
 # eof
