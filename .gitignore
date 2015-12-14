@@ -5,10 +5,14 @@
 .android
 .asgard
 .atlassian
+.atom
 .awssecret
 .bash_history
-.CFUserTextEncoding
+.bash_sessions
+.bliss
+.boot2docker
 .cache
+.CFUserTextEncoding
 .compiz
 .config
 .cpan
@@ -16,6 +20,7 @@
 .dmrc
 .dropbox
 .dropbox-dist
+.DS_Store
 .eclipse
 .eclipse_keyring
 .fontconfig
@@ -24,12 +29,14 @@
 .gem
 .gitk
 .gnome
+.gnupg
 .gradle
 .grails
 .groovy
 .gvm
 .ICEauthority
 .icons
+.ievms
 .inkscape-etc
 .ivy2
 .lesshst
@@ -41,33 +48,48 @@
 .mysql_history
 .node*
 .npm
+.packer.d
 .pki
+.plexht
 .ssh
 .ssh-agent
+.starclient
 .subversion
 .subversion_IDEA
-.vim
 .Trash
+.vagrant.d
+.vim
 .viminfo
-.XAuthority
 .Xauthority
+.XAuthority
+.xinitrc.old
 .xsession
 .xsession-errors
-.xinitrc.old
+*retry
 Android
+Applications
+Box Sync
+Calibre Library
+Copy
 Desktop
 dev
 Documents
 Downloads
 Dropbox
+Kitematic
 Library
 Movies
 Music
+OneDrive
 Pictures
 Public
 reportit
+Screenshots
 Sites
 springsource
+virtualBox VMs
+VMWare VMs
 xfers
+YouTube
 
 # EOF
