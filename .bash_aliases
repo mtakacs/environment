@@ -15,18 +15,18 @@ alias a=alias
 #################################
 if [ -x /usr/local/bin/gnuls ] || [ -x ${HOME}/bin/gnuls ] ; then
   color="--color=auto"
-  LS="gnuls ${color}"
+  LS="/usr/local/bin/gnuls ${color}"
 else
 #  color="--color=auto -G"
   color="-G"
-  LS="ls ${color}"
+  LS="/bin/ls ${color}"
 fi
 
 # emacs shells dont like colors
 if [ "$TERM" == 'emacs' ]
 then
     unset color
-    LS="ls"
+    LS="/bin/ls"
 fi
 
 a d="${LS}"
@@ -109,4 +109,5 @@ a takterm="xterm -vb -fg white -bg black -font 9x15 &"
 a synergy="synergyc -f --name MacBook Jolo"
 
 a flush_dns="dscacheutil -flushcache;sudo killall -HUP mDNSResponder"
+a whatsmyip="curl http://ipecho.net/plain; echo"
 
