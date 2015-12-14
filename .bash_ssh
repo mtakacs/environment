@@ -13,7 +13,7 @@ function start_agent {
     /usr/bin/ssh-add ~/.ssh/id_rsa &>/dev/null;
     /usr/bin/ssh-add ~/.ssh/*pem &>/dev/null;
 }
- 
+
 # Source SSH settings, if applicable
 if [ -f "${SSH_ENV}" ]; then
     . "${SSH_ENV}" > /dev/null
@@ -25,3 +25,10 @@ else
     start_agent;
 fi
 
+###
+### Auto-generate .ssh/config from component parts.
+##
+rm -f ${HOME}/.ssh/config
+## TODO: could replace with some fancy #ifdef to pull in different server definitions based on where we are
+cat ${HOME}/.ssh/config.d/* > ~/.ssh/config
+chmod 600 ~/.ssh/config
