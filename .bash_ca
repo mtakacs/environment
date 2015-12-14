@@ -8,6 +8,8 @@ alias a=alias
 alias tunnel_nexus="ssh -fN -L 8081:10.126.172.13:8081 bastion.pad-4nd-infra"
 alias tunnel_jenkins="ssh -fN -L 49001:10.126.172.14:49001 bastion.pad-4nd-infra"
 
+alias tunnel_playbooknp="ssh -l playbook -L 8080:10.47.32.49:80 sm-rsync.americasnp.saas.ca.com"
+
 
 #################################
 # exports
