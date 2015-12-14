@@ -5,7 +5,7 @@
 #    https://wincent.com/wiki/Git_quickstart
 ###############################################
 [user]
-	email = tak@citruslane.com
+	email = mtakacs@gmail.com
 	name = Tak
 [core]
 	excludesfile = /Users/tak/.gitignore_global
@@ -48,3 +48,15 @@
 [mergetool "sourcetree"]
 	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
+[push]
+	default = simple
+[credential]
+	helper = osxkeychain
+[filter "hawser"]
+	clean = git hawser clean %f
+	smudge = git hawser smudge %f
+	required = true
+[filter "lfs"]
+	clean = git-lfs clean %f
+	smudge = git-lfs smudge %f
+	required = true
