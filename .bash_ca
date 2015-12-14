@@ -1,0 +1,24 @@
+#!/bin/sh
+#  -*- shell-script -*-
+#######################################################
+#######################################################
+
+alias a=alias
+
+alias tunnel_nexus="ssh -fN -L 8081:10.126.172.13:8081 bastion.pad-4nd-infra"
+alias tunnel_jenkins="ssh -fN -L 49001:10.126.172.14:49001 bastion.pad-4nd-infra"
+
+
+#################################
+# exports
+#################################
+
+
+#################################
+# JAVA options
+#################################
+export JAVA_HOME=$(/usr/libexec/java_home)
+
+
+
+#eof
