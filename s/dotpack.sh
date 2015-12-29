@@ -1,24 +1,28 @@
 #!/bin/sh
-
-
+DATESTAMP=`date +%Y%m%d-%H%M%S`
+TARFILE="dotters_${DATESTAMP}.tar"
 PWD=`pwd`
-DOTS="./.bashrc"
-EMACS_DIR="./.emacs.d"
-SSH_DIR="./.ssh"
-SCRIPTS_DIR="./s"
-DOTS="${DOTS} ./.bash_aliases"
-DOTS="${DOTS} ./.bash_export"
-DOTS="${DOTS} ./.bash_func"
-#DOTS="${DOTS} ./.bash_history"  # dont export this
-DOTS="${DOTS} ./.bash_misc"
-DOTS="${DOTS} ./.bash_profile"
-DOTS="${DOTS} ./.bash_yahoo"
-DOTS="${DOTS} ./.bashrc"
-DOTS="${DOTS} ./.bashrc.FreeBSD"
+##
+## Entire dirs we want to archive
+##
+DIRS=""
+DIRS="${DIRS} ./.aws"
+DIRS="${DIRS} ./.emacs.d"
+DIRS="${DIRS} ./.ssh"
+DIRS="${DIRS} ./s"
+##
+## Individual dotrc files
+##
+DOTS=""
+DOTS="${DOTS} ./.atom/*cson"
+DOTS="${DOTS} ./.awsrc"
+DOTS="${DOTS} ./.bash_*"
 DOTS="${DOTS} ./.cvsignore"
 DOTS="${DOTS} ./.cvsrc"
+DOTS="${DOTS} ./.digrc"
 DOTS="${DOTS} ./.dircolors"
 DOTS="${DOTS} ./.emacs"
+DOTS="${DOTS} ./.git*"
 DOTS="${DOTS} ./.inputrc"
 DOTS="${DOTS} ./.p4config-zimbra"
 DOTS="${DOTS} ./.ssh-agent"
@@ -26,24 +30,27 @@ DOTS="${DOTS} ./.viminfo"
 DOTS="${DOTS} ./.vimrc"
 DOTS="${DOTS} ./.xinitrc"
 DOTS="${DOTS} ./.xsession"
-TARFILE="dotters.tar"
 
-dirs="${EMACS_DIR} ${SCRIPTS_DIR} ${SSH_DIR}"
+dirs="${DIRS}"
 files="${DOTS}"
 
-cd  ${HOME}
+cd ${HOME}
 
 rm -f ${TARFILE}
 rm -f ${TARFILE}.gz
 
 for d in $dirs; do
-    echo $d
-    tar -rvf ${TARFILE} --exclude "*~" $d/*
+    if [ -d $d ]; then
+      # echo $d
+      tar -rvf ${TARFILE} --exclude "*~" $d/*
+    fi
 done
 
 for f in $files; do
-    echo $f
+  if [ -f $f ]; then
+    # echo $f
     tar -rvf ${TARFILE} $f
+  fi
 done
 
 gzip --best ${TARFILE}
