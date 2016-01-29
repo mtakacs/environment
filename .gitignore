@@ -51,6 +51,7 @@
 .packer.d
 .pki
 .plexht
+.sdkman
 .ssh
 .ssh-agent
 .starclient
