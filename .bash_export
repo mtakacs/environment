@@ -133,21 +133,25 @@ fi
 # @see git-prompt.sh
 #################################
 
+export GIT_PS1_DESCRIBE_STYLE="branch"
+export GIT_PS1_HIDE_IF_PWD_IGNORED="true"
+export GIT_PS1_SHOWCOLORHINTS="true"
 export GIT_PS1_SHOWDIRTYSTATE="true"
 export GIT_PS1_SHOWSTASHSTATE="true"
 export GIT_PS1_SHOWUNTRACKEDFILES="true"
 export GIT_PS1_SHOWUPSTREAM="auto verbose git"
-export GIT_PS1_DESCRIBE_STYLE="branch"
-export GIT_PS1_SHOWCOLORHINTS="true"
+#export GIT_PS1_STATESEPARATOR=" "
 
-# Do not set PS1 for dumb terminals or emacs
+## Configure Prompt
+## Do not set PS1 for dumb terminals or emacs
+## http://stackoverflow.com/questions/3058325/what-is-the-difference-between-ps1-and-prompt-command
 if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
 then
-    export PS1="${PCOLOR_OFF}${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
-    #export PS1="${PCOLOR_OFF}\$(__git_ps1 '(%s)')${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
-    #export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(__git_ps1 '(%s)')> ${PCOLOR_OFF}"
-    #export PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'
-    #export PROMPT_COMMAND='__git_ps1 "g" "\u@\h:\w> "'
+  export PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'
+  #export PROMPT_COMMAND='__git_ps1 "g" "\u@\h:\w> "'
+  export PS1="${PCOLOR_OFF}${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+  # export PS1="${PCOLOR_OFF}\$(__git_ps1 '(%s)')${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+  #export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(__git_ps1 '(%s)')> ${PCOLOR_OFF}"
 else
     export PS1='\u@\h:\W> '
     #export PS1='\u@\h:\W\$(__git_ps1 " (%s)")> '
@@ -356,11 +360,6 @@ done
 
 unset class classes
 export CLASSPATH
-
-#################################
-## Evaluate ATLAS
-#################################
-export ATLAS_TOKEN="1ZTN5wAWzFTwCg.atlasv1.qSFrwO2kz6E9O4nEexvyhQ8phP0LtkcAf2LTRerwEKzyWTAiaxzxF2ZrBUzykWNTu9k"
 
 #################################
 ## Boot2Docker shim
