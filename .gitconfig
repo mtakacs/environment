@@ -13,6 +13,7 @@
 	usedeltabaseoffset = true
 	autocrlf = input
 	quotepath = off
+	editor = atom --wait
 [log]
 	decorate = short
 [color]
