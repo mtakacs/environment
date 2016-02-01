@@ -48,6 +48,8 @@
 .mysql_history
 .node*
 .npm
+.nvm
+.oracle_jre_usage
 .packer.d
 .pki
 .plexht
