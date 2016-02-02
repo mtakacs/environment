@@ -1,0 +1,4 @@
+# Load rbenv automatically by appending
+# the following to your profile:
+
+eval "$(rbenv init -)"
