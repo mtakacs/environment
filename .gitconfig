@@ -1,12 +1,9 @@
 ###############################################
 # GIT global config file
-# 
-# lots of stuff found at 
+#
+# lots of stuff found at
 #    https://wincent.com/wiki/Git_quickstart
 ###############################################
-[user]
-	email = mtakacs@gmail.com
-	name = Tak
 [core]
 	excludesfile = /Users/tak/.gitignore_global
 	legacyheaders = false
@@ -14,6 +11,12 @@
 	autocrlf = input
 	quotepath = off
 	editor = atom --wait
+##
+## The user.email value below forces you to run: git config user.email="foo@example.com"
+##
+[user]
+    email = "(none)"
+	name = Tak
 [log]
 	decorate = short
 [color]
@@ -33,7 +36,7 @@
 	amend = commit --amend
 	branches = branch -av
 	unstage = reset HEAD --
-	last = log --oneline -n 1 
+	last = log --oneline -n 1
 	dirty = branch --no-merged
     relnotes = shortlog --no-merges v1.0.9...HEAD
     history = log --follow
@@ -45,7 +48,7 @@
 	token = 5b253a2d988faf8a9958fa24e739b35
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path = 
+	path =
 [mergetool "sourcetree"]
 	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
