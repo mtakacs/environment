@@ -53,6 +53,7 @@
 .packer.d
 .pki
 .plexht
+.rbenv
 .sdkman
 .ssh
 .ssh-agent
