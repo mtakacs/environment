@@ -18,6 +18,7 @@
 .cpan
 .cups
 .dmrc
+.docker
 .dropbox
 .dropbox-dist
 .DS_Store
