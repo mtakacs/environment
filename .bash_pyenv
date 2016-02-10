@@ -1,0 +1,3 @@
+# Load pyenv automatically
+## Initialize Python pyEnv
+if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi

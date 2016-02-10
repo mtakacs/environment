@@ -30,6 +30,7 @@ export BASH_ENV="~/.bashrc"
 [ -f $HOME/.bash_func_grails -a -f $HOME/.grails ] && source $HOME/.bash_func_grails
 [ -f $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
 [ -f $HOME/.bash_ruby ] && source $HOME/.bash_ruby
+[ -f $HOME/.bash_pyenv ] && source $HOME/.bash_pyenv
 #[ -f $HOME/.bash_citrus ] && source $HOME/.bash_citrus
 #[ -f $HOME/.bash_ca ] && source $HOME/.bash_ca
 [ -f $HOME/.bash_apple ] && source $HOME/.bash_apple
