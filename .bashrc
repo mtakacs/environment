@@ -22,18 +22,16 @@ export BASH_ENV="~/.bashrc"
 # Git prompt magic :  http://git-prompt.sh
 [ -x $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
-[ -x $HOME/.bash_export ] && source $HOME/.bash_export
-[ -x $HOME/.bash_aliases ] && source $HOME/.bash_aliases
-[ -x $HOME/.bash_ssh ] && source $HOME/.bash_ssh
-[ -x $HOME/.bash_misc ] && source $HOME/.bash_misc
-[ -x $HOME/.bash_func ] && source $HOME/.bash_func
-[ -x $HOME/.bash_func_grails -a -f $HOME/.grails ] && source $HOME/.bash_func_grails
+##
+## Run all the bashrc fragments
+##
+for script in .bashrc.d/*; do
+    # skip non-executable snippets
+    [ -x "$script" ] && source $script
+done
+
+## Install ansible from source
 [ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
-[ -x $HOME/.bash_ruby ] && source $HOME/.bash_ruby
-[ -x $HOME/.bash_pyenv ] && source $HOME/.bash_pyenv
-#[ -x $HOME/.bash_citrus ] && source $HOME/.bash_citrus
-#[ -x $HOME/.bash_ca ] && source $HOME/.bash_ca
-[ -x $HOME/.bash_apple ] && source $HOME/.bash_apple
 
 ## Git Prompt magic -- i like this one better. Make sure this comes after PS1/PROMPT_COMMAND definitions
 # @see ~/.git-prompt.conf
