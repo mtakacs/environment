@@ -3,6 +3,9 @@
 # http://grails.org/Grails+Bash+Completion+Script
 #######################################################
 
+## Bail if grails is not installed  ( DO NOT use "exit" )
+[ ! -d "$HOME/.grails" ] && return
+
 export GRAILS_VERSION="$(ls -lhr $HOME/.grails | egrep -i '1\.' | head -1 | gawk '{print $9 }')"
 
 sed_option="-E"
