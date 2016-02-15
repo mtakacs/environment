@@ -1,0 +1,18 @@
+#!/bin/sh
+
+##
+## Load rbenv automatically
+## Initialize Ruby rbEnv
+## @see https://github.com/rbenv/rbenv
+##
+
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+
+##
+## Load pyenv automatically
+## Initialize Python pyEnv
+## @see https://github.com/yyuu/pyenv
+## @see https://github.com/yyuu/pyenv-virtualenv
+##
+if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
+if which pyenv > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
