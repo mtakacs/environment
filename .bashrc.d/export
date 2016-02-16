@@ -366,5 +366,11 @@ export CLASSPATH
 #################################
 #eval $(boot2docker shellinit 2>/dev/null)
 
+
+## If we happen to compile stuff, optimize it
+export CFLAGS='-O2'
+
+
+
 #############################################################################
 # eof
