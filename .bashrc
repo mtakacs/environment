@@ -22,6 +22,9 @@ export BASH_ENV="~/.bashrc"
 # Git prompt magic :  http://git-prompt.sh
 [ -x $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
+## Install ansible from source
+[ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
+
 ##
 ## Run all the bashrc fragments
 ##
@@ -30,8 +33,6 @@ for script in .bashrc.d/*; do
     [ -x "$script" ] && source $script
 done
 
-## Install ansible from source
-[ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
 
 ## Git Prompt magic -- i like this one better. Make sure this comes after PS1/PROMPT_COMMAND definitions
 # @see ~/.git-prompt.conf
