@@ -269,6 +269,7 @@ path="$path /usr/local/mysql/bin"
 path="$path /usr/local/ant/bin"
 path="$path /usr/local/packer"
 path="$path /Applications/Mkvtoolnix.app/Contents/macOS"
+path="$path /usr/local/lib/python2.7/site-packages/usr/local/bin"
 path="$path ."
 
 ###
