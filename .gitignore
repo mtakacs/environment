@@ -51,6 +51,7 @@
 .node*
 .npm
 .nvm
+.oh-my-zsh
 .oracle_jre_usage
 .packer.d
 .pki
@@ -77,6 +78,7 @@
 *retry
 Android
 Applications
+Box
 Box Sync
 Calibre Library
 Copy
@@ -85,11 +87,14 @@ dev
 Documents
 Downloads
 Dropbox
+Google Drive
 Kitematic
 Library
 Movies
 Music
 OneDrive
+photolib
+Photos
 Pictures
 Public
 reportit
