@@ -4,14 +4,8 @@
 
 *pem
 *retry
-.CFUserTextEncoding
-.DS_Store
-.ICEauthority
-.MacOSX
-.Trash
-.XAuthority
-.Xauthority
 .android
+.apc
 .asgard
 .atlassian
 .atom
@@ -23,6 +17,7 @@
 .bliss
 .boot2docker
 .cache
+.CFUserTextEncoding
 .compiz
 .config
 .cpan
@@ -31,6 +26,7 @@
 .docker
 .dropbox
 .dropbox-dist
+.DS_Store
 .eclipse
 .eclipse_keyring
 .feldspar
@@ -39,26 +35,32 @@
 .gconf
 .gem
 .gitflow_export
+.github_api.token
 .gitk
 .gnome
 .gnupg
 .gradle/build-cache*
 .gradle/build-scan*
 .gradle/caches
+.gradle/notifications
 .gradle/daemon
 .gradle/native
 .gradle/workers
 .gradle/wrapper
 .grails
+.grails_history
 .groovy
 .gvm
+.ICEauthority
 .icons
 .ievms
 .inkscape-etc
 .ivy2
+.kube
 .lesshst
 .local
 .m2
+.MacOSX
 .macromedia
 .mkvtoolnix
 .mysql_history
@@ -69,10 +71,13 @@
 .packer.d
 .papi*
 .pcl
+.pdfbox.cache
 .pex
 .pie
+.pip
 .pki
 .plexht
+.pyenv
 .rbenv
 .riorc
 .sdkman
@@ -89,9 +94,12 @@
 .starclient
 .subversion
 .subversion_IDEA
+.Trash
 .vagrant.d
 .vim
 .viminfo
+.XAuthority
+.Xauthority
 .xinitrc.old
 .xsession
 .xsession-errors
@@ -100,9 +108,11 @@
 Android
 Applications
 Box Sync
+Box
 Calibre Library
 Copy
 Desktop
+dev
 Documents
 Downloads
 Dropbox
@@ -113,15 +123,14 @@ Music
 OneDrive
 Pictures
 Public
-Screenshots
-Sites
-VMWare VMs
-YouTube
-dev
 reportit
 s
+Screenshots
+Sites
 springsource
 virtualBox VMs
+VMWare VMs
 xfers
+YouTube
 
 # EOF

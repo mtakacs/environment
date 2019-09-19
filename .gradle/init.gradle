@@ -1,0 +1,37 @@
+allprojects {
+  buildscript {
+    repositories {
+      maven {
+        url "${artifactory_contextUrl}/plugins-release"
+        credentials {
+          username "${artifactory_user}"
+          password "${artifactory_password}"
+        }
+      }
+      maven {
+        url "${artifactory_contextUrl}/plugins-snapshot"
+        credentials {
+          username "${artifactory_user}"
+          password "${artifactory_password}"
+        }
+      }
+    }
+  }
+
+  repositories {
+    maven {
+      url "${artifactory_contextUrl}/libs-release"
+      credentials {
+        username "${artifactory_user}"
+        password "${artifactory_password}"
+      }
+    }
+    maven {
+      url "${artifactory_contextUrl}/libs-snapshot"
+      credentials {
+        username "${artifactory_user}"
+        password "${artifactory_password}"
+      }
+    }
+  }
+}
