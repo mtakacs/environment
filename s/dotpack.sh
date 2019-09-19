@@ -9,13 +9,18 @@ DIRS=""
 DIRS="${DIRS} ./.aws"
 DIRS="${DIRS} ./.emacs.d"
 DIRS="${DIRS} ./.ssh"
+DIRS="${DIRS} ./.bashrc.d"
 DIRS="${DIRS} ./s"
+DIRS="${DIRS} ./.feldspar"
+DIRS="${DIRS} ./.gradle/init.d"
 ##
 ## Individual dotrc files
 ##
 DOTS=""
 DOTS="${DOTS} ./.atom/*cson"
 DOTS="${DOTS} ./.awsrc"
+DOTS="${DOTS} ./.gradle/*properties"
+DOTS="${DOTS} ./.bashrc"
 DOTS="${DOTS} ./.bash_*"
 DOTS="${DOTS} ./.cvsignore"
 DOTS="${DOTS} ./.cvsrc"
@@ -34,7 +39,7 @@ DOTS="${DOTS} ./.xsession"
 dirs="${DIRS}"
 files="${DOTS}"
 
-cd ${HOME}
+#cd ${HOME}
 
 rm -f ${TARFILE}
 rm -f ${TARFILE}.gz
@@ -55,4 +60,4 @@ done
 
 gzip --best ${TARFILE}
 
-cd ${PWD}
+#cd ${PWD}

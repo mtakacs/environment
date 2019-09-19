@@ -1,10 +1,13 @@
 #!/bin/bash
 
-CMD="git config user.email='mtakacs@apple.com'"
-
-for D in *; do
-    if [ -d "${D}" ]; then
-        echo "${D}: ${CMD}"
-        cd $D ; git config user.email="mtakacs@apple.com"; cd ..
+for dir in *; do
+    if [ -d "${dir}" ]; then
+        echo "${dir}: setting git config options"
+        cd ${dir} 
+        git config user.name "Mark Takacs"
+        git config user.email "mtakacs@apple.com" 
+        git config user.signingkey 066E2D2C
+        git config push.followTags true
+        cd ..
     fi
 done
