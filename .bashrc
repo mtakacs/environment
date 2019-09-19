@@ -18,12 +18,20 @@ export BASH_ENV="~/.bashrc"
 [ -f /etc/bash_completion ] && ! shopt -oq posix && source /etc/bash_completion
 
 # Git completion
-[ -x $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
+#[ -x $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
 # Git prompt magic :  http://git-prompt.sh
-[ -x $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
+#[ -x $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
 ## Install ansible from source
 [ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
+
+##
+## Run all the bashrc fragments
+##
+for script in .bash_completion.d/*; do
+    # skip non-executable snippets
+    [ -x "$script" ] && source $script
+done
 
 ##
 ## Run all the bashrc fragments
@@ -38,9 +46,6 @@ done
 # @see ~/.git-prompt.conf
 #[ -f $HOME/dev/git-prompt/git-prompt.sh ] && source $HOME/dev/git-prompt/git-prompt.sh
 
-## Loads NVM
-[ -s $HOME/.nvm/nvm.sh ] && . $HOME/.nvm/nvm.sh # This loads NVM
-
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="~/.sdkman"
-[[ -s "~/.sdkman/bin/sdkman-init.sh" ]] && source "~/.sdkman/bin/sdkman-init.sh"
+export SDKMAN_DIR="/Users/mtakacs/.sdkman"
+[[ -s "/Users/mtakacs/.sdkman/bin/sdkman-init.sh" ]] && source "/Users/mtakacs/.sdkman/bin/sdkman-init.sh"
