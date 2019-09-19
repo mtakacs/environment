@@ -5,17 +5,16 @@
 #    https://wincent.com/wiki/Git_quickstart
 ###############################################
 [core]
-	excludesfile = /Users/tak/.gitignore_global
+	excludesfile = /Users/mtakacs/.gitignore_global
 	legacyheaders = false
 	usedeltabaseoffset = true
 	autocrlf = input
 	quotepath = off
-	editor = atom --wait
 ##
 ## The user.email value below forces you to run: git config user.email="foo@example.com"
 ##
 [user]
-    email = "(none)"
+	email = mtakacs@apple.com
 	name = Tak
 [log]
 	decorate = short
@@ -41,6 +40,15 @@
     relnotes = shortlog --no-merges v1.0.9...HEAD
     history = log --follow
     hist = log --oneline --graph --decorate --all
+    # based on: https://gist.github.com/intel352/9761288
+    show-closest-branch = rev-parse --abbrev-ref HEAD
+    # based on: http://stackoverflow.com/questions/3161204/find-the-parent-branch-of-a-git-branch
+    show-closest-parent-branch = !"git show-branch -a --no-color 2> /dev/null | awk -F '[]^~[]' -v current_branch=`git show-closest-branch 2> /dev/null || true` 'BEGIN { rc=1 ; if ( length( current_branch ) == 0 ) { exit } } ( ( index( $1, \"*\" ) > 0 ) && ( length( $2 ) > 0 ) && ( $2 != current_branch ) ) { print $2 ; rc=0 ; exit } END { exit rc }'"
+    # short versions
+    cb = !git show-closest-branch
+    pb = !git show-closest-parent-branch
+    extract-submodules = "!gitextractsubmodules() { set -e && { if [ 0 -lt \"$#\" ]; then printf \"%s\\n\" \"$@\"; else git ls-files --stage | sed -n \"s/^160000 [a-fA-F0-9]\\+ [0-9]\\+\\s*//p\"; fi; } | { local path && while read -r path; do if [ -f \"${path}/.git\" ]; then local git_dir && git_dir=\"$(git -C \"${path}\" rev-parse --absolute-git-dir)\" && if [ -d \"${git_dir}\" ]; then printf \"%s\t%s\n\" \"${git_dir}\" \"${path}/.git\" && mv --no-target-directory --backup=simple -- \"${git_dir}\" \"${path}/.git\" && git --work-tree=\"${path}\" --git-dir=\"${path}/.git\" config --local --path --unset core.worktree && rm -f -- \"${path}/.git~\" && if 1>&- command -v attrib.exe; then MSYS2_ARG_CONV_EXCL=\"*\" attrib.exe \"+H\" \"/D\" \"${path}/.git\"; fi; fi; fi; done; }; } && type gitextractsubmodules"
+
 [merge]
 	tool = opendiff
 [github]
@@ -48,12 +56,13 @@
 	token = 5b253a2d988faf8a9958fa24e739b35
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path =
+	path = 
 [mergetool "sourcetree"]
-	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
 [push]
 	default = simple
+	followTags = true
 [credential]
 	helper = osxkeychain
 [filter "hawser"]
@@ -61,6 +70,13 @@
 	smudge = git hawser smudge %f
 	required = true
 [filter "lfs"]
-	clean = git-lfs clean %f
-	smudge = git-lfs smudge %f
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
 	required = true
+	process = git-lfs filter-process
+[fetch]
+	prune = true
+[status]
+	submoduleSummary = true
+[diff]
+	submodule = log
