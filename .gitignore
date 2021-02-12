@@ -4,6 +4,13 @@
 
 *pem
 *retry
+.CFUserTextEncoding
+.DS_Store
+.ICEauthority
+.MacOSX
+.Trash
+.XAuthority
+.Xauthority
 .android
 .apc
 .asgard
@@ -17,7 +24,6 @@
 .bliss
 .boot2docker
 .cache
-.CFUserTextEncoding
 .compiz
 .config
 .cpan
@@ -26,9 +32,9 @@
 .docker
 .dropbox
 .dropbox-dist
-.DS_Store
 .eclipse
 .eclipse_keyring
+.ent
 .feldspar
 .fontconfig
 .freemind
@@ -39,40 +45,46 @@
 .gitk
 .gnome
 .gnupg
+.gnupg*
 .gradle/build-cache*
 .gradle/build-scan*
 .gradle/caches
-.gradle/notifications
 .gradle/daemon
+.gradle/gradle*.properties
 .gradle/native
+.gradle/notifications
 .gradle/workers
 .gradle/wrapper
 .grails
 .grails_history
 .groovy
 .gvm
-.ICEauthority
 .icons
 .ievms
 .inkscape-etc
+.iterm2
 .ivy2
+.javacpp
+.jenv
 .kube
 .lesshst
 .local
 .m2
-.MacOSX
 .macromedia
+.markdownNavigator
 .mkvtoolnix
 .mysql_history
 .node*
 .npm
 .nvm
+.oh-my-zsh
 .oracle_jre_usage
 .packer.d
 .papi*
 .pcl
 .pdfbox.cache
 .pex
+.pgadmin
 .pie
 .pip
 .pki
@@ -84,9 +96,11 @@
 .secretsrc
 .sh_history
 .ssh-agent
+.ssh/.mementoStat
 .ssh/authorized_keys
 .ssh/config
 .ssh/environment
+.ssh/keystore
 .ssh/known_hosts*
 .ssh/live-container.known_hosts
 .ssh/multi
@@ -94,25 +108,22 @@
 .starclient
 .subversion
 .subversion_IDEA
-.Trash
 .vagrant.d
 .vim
 .viminfo
-.XAuthority
-.Xauthority
 .xinitrc.old
 .xsession
 .xsession-errors
+.z
 .zsh-update
 .zsh_history
 Android
 Applications
-Box Sync
 Box
+Box Sync
 Calibre Library
 Copy
 Desktop
-dev
 Documents
 Downloads
 Dropbox
@@ -123,14 +134,16 @@ Music
 OneDrive
 Pictures
 Public
-reportit
-s
 Screenshots
 Sites
+VMWare VMs
+YouTube
+creds
+dev
+reportit
+s
 springsource
 virtualBox VMs
-VMWare VMs
 xfers
-YouTube
 
 # EOF

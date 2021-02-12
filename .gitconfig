@@ -16,6 +16,7 @@
 [user]
 	email = mtakacs@apple.com
 	name = Tak
+	signingkey = 178D6D7FF65FD4CA
 [log]
 	decorate = short
 [color]
@@ -80,3 +81,5 @@
 	submoduleSummary = true
 [diff]
 	submodule = log
+[pull]
+	rebase = false
