@@ -14,9 +14,8 @@
 ## The user.email value below forces you to run: git config user.email="foo@example.com"
 ##
 [user]
-	email = mtakacs@apple.com
+	email = mtakacs@gmail.com
 	name = Tak
-	signingkey = 178D6D7FF65FD4CA
 [log]
 	decorate = short
 [color]
