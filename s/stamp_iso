@@ -1,0 +1,2 @@
+#!/bin/sh
+date +_%Y-%m-%dT%H:%M:%S%z
