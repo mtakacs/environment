@@ -16,6 +16,7 @@ export BASH_ENV="~/.bashrc"
 # uncomment the following to activate bash-completion:
 [ -f /etc/profile.d/bash-completion ] && source /etc/profile.d/bash-completion
 [ -f /etc/bash_completion ] && ! shopt -oq posix && source /etc/bash_completion
+[[ -r "/opt/brew/etc/profile.d/bash_completion.sh" ]] && . "/opt/brew/etc/profile.d/bash_completion.sh"
 
 # Git completion
 #[ -x $HOME/.git-completion.bash ] && source $HOME/.git-completion.bash
@@ -23,7 +24,7 @@ export BASH_ENV="~/.bashrc"
 #[ -x $HOME/.git-prompt.sh ] && source $HOME/.git-prompt.sh
 
 ## Install ansible from source
-[ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
+#[ -x $HOME/dev/ansible/hacking/env-setup ] && source $HOME/dev/ansible/hacking/env-setup -q
 
 ##
 ## Run all the bashrc fragments

@@ -236,12 +236,19 @@ export MAVEN_HOME="/usr/local/maven"
 # PATH Foo
 #################################
 
-# bootstrap
-export PATH="$HOME/bin"
+# System Paths
+
+##
+## BootStrap: Run all the system path fragments
+##
+if [ -x /usr/libexec/path_helper ]; then
+    eval `/usr/libexec/path_helper -s`
+fi
 
 path=""
 
 # my stuff
+path="$path $HOME/bin"
 path="$path $HOME/s"
 
 path="$path /usr/local/git/bin"
