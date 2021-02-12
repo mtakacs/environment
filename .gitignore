@@ -63,6 +63,7 @@
 .ievms
 .inkscape-etc
 .iterm2
+.iterm2_shell_integration.zsh
 .ivy2
 .javacpp
 .jenv
@@ -97,8 +98,10 @@
 .sh_history
 .ssh-agent
 .ssh/.mementoStat
+.ssh/.mementoStats
 .ssh/authorized_keys
 .ssh/config
+.ssh/config.d/*apple*
 .ssh/environment
 .ssh/keystore
 .ssh/known_hosts*
@@ -115,6 +118,7 @@
 .xsession
 .xsession-errors
 .z
+.zcompdump*
 .zsh-update
 .zsh_history
 Android
@@ -141,6 +145,7 @@ YouTube
 creds
 dev
 reportit
+s.apple
 springsource
 virtualBox VMs
 xfers
