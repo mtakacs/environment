@@ -121,6 +121,7 @@
 .zcompdump*
 .zsh-update
 .zsh_history
+.zsh_sessions
 Android
 Applications
 Box
