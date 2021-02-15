@@ -82,3 +82,5 @@
 	submodule = log
 [pull]
 	rebase = false
+[init]
+	defaultBranch = main
