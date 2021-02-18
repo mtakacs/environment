@@ -100,3 +100,7 @@ source $ZSH/oh-my-zsh.sh
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 source /usr/local/opt/powerlevel10k/powerlevel10k.zsh-theme
+
+# redundant, its in the custom/*.zsh load loop
+# To customize prompt, run `p10k configure` or edit ~/.oh-my-zsh/custom/p10k.zsh.
+#[[ ! -f ~/.oh-my-zsh/custom/p10k.zsh ]] || source ~/.oh-my-zsh/custom/p10k.zsh
