@@ -19,6 +19,8 @@
 #  --out "FILE"      Output to this exact file name, ignoring title, suffix.
 #  --progress        Show a textual progress bar for downloads.
 #  --bwlimit Nkbps   Throttle download speed.
+#  --parallel N	     Bypass rate limiting by making N multiple simultaneous
+#		     connections.
 #
 #  --size            Instead of downloading it all, print video dimensions.
 #		     This requires "ffmpeg".
@@ -61,6 +63,7 @@
 require 5;
 use diagnostics;
 use strict;
+use POSIX;
 use IO::Socket;
 use IO::Socket::SSL;
 use IPC::Open3;
@@ -69,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1728 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1779 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -80,7 +83,7 @@ my $verbose = 1;
 my $append_suffix_p = 0;
 my $webm_p = 0;
 my $webm_transcode_p = 0;
-
+my $parallel_loads = 30;
 
 my $http_proxy = undef;
 my $ffmpeg = 'ffmpeg';
@@ -253,6 +256,24 @@ sub draw_progress($$$) {
 
 
 
+##############################################################################
+#
+# Reading data from URLs is the heart of the operation, and is surprisingly
+# complicated.  Not only do we need to handle proxies and SSL, but we use
+# the data in several different ways:
+#
+#   - Sometimes we want the data returned in memory;
+#   - Sometimes we want it to go directly to a file;
+#   - Sometimes we only want the first few KB of the document;
+#   - We want to resume incomplete downloads using byte range requests;
+#
+# And now the latest kink,
+#
+#   - When downloading a large file, we want to load N URLs in parallel,
+#     reading different parts of that file, as a way of circumventing
+#     Youtube's bandwidth throttling.
+
+
 # Like sysread() but timesout and return undef if no data received in N secs.
 # The buffer argument is a reference, not a string.
 #
@@ -294,20 +315,12 @@ sub sysread_timeout($$$$) {
 my $keepalive_p = 1;
 my %keepalive;  # { $hostname => $socket, ... }
 
+my $sysread_timeout = 30;
 
-# Loads the given URL, returns: $http, $head, $body,
-# $bytes_read, $content_length, $document_length.
-# Does not retry or process redirects.
-#
-sub get_url_1($;$$$$$$$$) {
-  my ($url, $referer, $to_file, $bwlimit, $start_byte, $max_bytes,
-      $append_p, $progress_p, $extra_headers) = @_;
 
-  error ("not an HTTP URL, try rtmpdump: $url") if ($url =~ m@^rtmp@i);
+sub url_split($) {
+  my ($url) = @_;
   error ("not an HTTP URL: $url") unless ($url =~ m@^(https?|feed)://@i);
-
-  my $sysread_timeout = 30;
-
   my ($proto, undef, $host, $path) = split(m@/@, $url, 4);
   $path = "" unless defined ($path);
   $path = "/$path";
@@ -315,11 +328,25 @@ sub get_url_1($;$$$$$$$$) {
   my $port = ($host =~ s@:([^:/]*)$@@gs ? $1 : undef);
 
   $port = ($proto eq 'https:' ? 443 : 80) unless $port;
+  return ($proto, $host, $port, $path);
+}
 
+
+# Open the socket to the remote web server, handling SSL and proxies.
+# Returns the socket, and the proxy-adjusted path for the GET request.
+#
+sub sock_open($) {
+  my ($url) = @_;
+
+  my ($proto, $host, $port, $path) = url_split ($url);
   my $oport = $port;
   my $ohost = $host;
 
-  my $S = $keepalive_p ? $keepalive{"$proto://$host"} : undef;
+  my $S = undef;
+  if ($keepalive_p) {
+    $S   = $keepalive{"$proto://$host"};
+    delete $keepalive{"$proto://$host"};
+  }
 
   if ($S) {
     print STDERR "$progname: reusing connection: $host\n" if ($verbose > 2);
@@ -445,6 +472,13 @@ sub get_url_1($;$$$$$$$$) {
     $S->autoflush(1);
   }
 
+  return ($S, $path);
+}
+
+
+sub build_http_req($$$$$$) {
+  my ($host, $path, $referer, $start_byte, $max_bytes, $extra_headers) = @_;
+
   my $user_agent = "$progname/$version";
 
   # Finally we are in straight HTTP land (but $path may be either "absolute"
@@ -452,8 +486,8 @@ sub get_url_1($;$$$$$$$$) {
   # (You'd think this should be HTTP/1.1 since we are using keep-alive,
   # but that breaks things for some reason.)
   #
-  my $hdrs = ("GET " . $path . " HTTP/1.0\r\n" .
-              "Host: $ohost\r\n" .
+  my $hdrs = ("GET $path HTTP/1.0\r\n" .
+              "Host: $host\r\n" .
               "User-Agent: $user_agent\r\n");
 
   my @extra_headers = ();
@@ -486,6 +520,104 @@ sub get_url_1($;$$$$$$$$) {
       print STDERR "  ==> $_\n";
     }
   }
+
+  return $hdrs;
+}
+
+
+sub parse_content_range($$$$) {
+  my ($url, $head, $start_byte, $max_bytes) = @_;
+
+  # Note that if we requested a byte range, this is the length of the range,
+  # not the length of the full document.
+  my ($cl) = ($head =~ m@^Content-Length: \s* (\d+) @mix);
+
+  if ($start_byte || $max_bytes) {
+    my ($s, $e, $cl2) = ($head =~ m@^Content-Range:
+                                    \s* bytes \s+
+                                    (\d+) \s* - \s*
+                                    (\d+) \s* / \s*
+                                    (\d+) \s* $@mix);
+    error ("attempting to resume download failed: $url\n$head")
+      unless defined($cl2);
+    error ("attempting to resume download failed: wrong start byte: $url")
+      unless ($s == $start_byte);
+
+    # In byte-ranges mode, Content-Length is the length of the chunk being
+    # returned; the document content-length is in the Content-Range header.
+    $cl = $cl2;
+  }
+
+  my $document_length = $cl;
+
+  $cl = $start_byte + $max_bytes
+    if ($cl && $max_bytes && $start_byte + $max_bytes < $cl);
+
+  return ($cl, $document_length);
+}
+
+
+sub bwlimit_throttle($$$$) {
+  my ($bwlimit, $start_time, $bytes, $actual_bits_per_sec) = @_;
+
+  # If we're throttling our download speed, and we went over, hang back.
+  #
+  if ($bwlimit) {
+    my $now = time();
+    my $tick = 0.1;
+    my $paused = 0;
+    while (1) {
+      last if ($actual_bits_per_sec <= $bwlimit);
+      select (undef, undef, undef, $tick);
+      $paused += $tick;
+      $now = time();
+      my $elapsed = $now - $start_time;
+
+      #### It would be better for this to be measured over the last few
+      #### seconds, rather than measured from the beginning of the download,
+      #### so that a network drop doesn't cause it to try and "catch up".
+
+      $actual_bits_per_sec = $bytes * 8 / ($elapsed <= 0 ? 1 : $elapsed);
+      print STDERR "$progname: bwlimit: delay $paused\n" if ($verbose > 5);
+    }
+  }
+}
+
+
+# Loads the given URL, returns: $http, $head, $body,
+# $bytes_read, $content_length, $document_length.
+# Does not retry or process redirects.
+#
+# This is the old, "simpler" (ha!) way that does not do parallel loads
+# of different segments of the document.
+#
+# Both mechanisms are still in use because there's no point in doing
+# the parallel-load thing for short documents that are loaded directly
+# into memory (like HTML pages).
+#
+sub get_url_1($;$$$$$$$$) {
+  my ($url, $referer, $to_file, $bwlimit, $start_byte, $max_bytes,
+      $append_p, $progress_p, $extra_headers) = @_;
+
+  if ($to_file &&
+      $to_file ne '-' &&
+      $parallel_loads > 1 &&
+      !$append_p &&
+      $url =~ m@\b(youtube|google)[^./]*\.com/@si) {
+    # This is a direct write to a file, so we can use parallel loads.
+    return get_url_1_parallel ($url, $referer, $to_file, $bwlimit,
+                               $start_byte, $max_bytes, $append_p,
+                               $progress_p, $extra_headers);
+  }
+
+  my ($proto, $host, $port, $path) = url_split ($url);
+  my $S;
+  ($S, $path) = sock_open ($url);
+  my $oport = $port;
+  my $ohost = $host;
+
+  my $hdrs = build_http_req ($ohost, $path, $referer,
+                             $start_byte, $max_bytes, $extra_headers);
   syswrite ($S, $hdrs) ||
     error ('syswrite: ' . ($! || 'I/O error') . ": $host");
 
@@ -546,32 +678,10 @@ sub get_url_1($;$$$$$$$$) {
   # output file.
   #
   my $ok_p = ($http =~ m@^HTTP/[0-9.]+ 20\d@si);
-
-
-  # Note that if we requested a byte range, this is the length of the range,
-  # not the length of the full document.
-  my ($cl) = ($head =~ m@^Content-Length: \s* (\d+) @mix);
-
-  if ($ok_p && ($start_byte || $max_bytes)) {
-    my ($s, $e, $cl2) = ($head =~ m@^Content-Range:
-                                    \s* bytes \s+
-                                    (\d+) \s* - \s*
-                                    (\d+) \s* / \s*
-                                    (\d+) \s* $@mix);
-    error ("attempting to resume download failed: $url\n$head")
-      unless defined($cl2);
-    error ("attempting to resume download failed: wrong start byte: $url")
-      unless ($s == $start_byte);
-
-    # In byte-ranges mode, Content-Length is the length of the chunk being
-    # returned; the document content-length is in the Content-Range header.
-    $cl = $cl2;
-  }
-
-  my $document_length = $cl;
-
-  $cl = $start_byte + $max_bytes
-    if ($cl && $max_bytes && $start_byte + $max_bytes < $cl);
+  my ($cl, $document_length) =
+    ($ok_p
+     ? parse_content_range ($url, $head, $start_byte, $max_bytes)
+     : parse_content_range ($url, $head, 0, 0));
 
   $progress_p = 0 if (($cl || 0) <= 0);
 
@@ -665,28 +775,7 @@ sub get_url_1($;$$$$$$$$) {
         last;
       }
 
-      # If we're throttling our download speed, and we went over, hang back.
-      #
-      if ($bwlimit) {
-        my $tick = 0.1;
-        my $paused = 0;
-        while (1) {
-          last if ($actual_bits_per_sec <= $bwlimit);
-          select (undef, undef, undef, $tick);
-          $paused += $tick;
-          $now = time();
-          $elapsed = $now - $start_time;
-
-          #### It would be better for this to be measured over the last few
-          #### seconds, rather than measured from the beginning of the download,
-          #### so that a network drop doesn't cause it to try and "catch up".
-
-          $actual_bits_per_sec = $bytes * 8 / ($elapsed <= 0 ? 1 : $elapsed);
-          print STDERR "$progname: bwlimit: delay $paused\n" if ($verbose > 5);
-          error ("\"$to_file\" unexpectedly vanished!")
-            if ($to_file && !-f $to_file);
-        }
-      }
+      bwlimit_throttle ($bwlimit, $start_time, $bytes, $actual_bits_per_sec);
     }
   }
 
@@ -923,6 +1012,344 @@ sub check_http_status($$$$) {
   error  ("$id: $http: $url") if ($err_p);
   return 0;
 }
+
+
+##############################################################################
+#
+# This is the new way, that loads different segments of the document in
+# parallel.  This is only used for URLs we are downloading to a file,
+# not for URLs that are returning in-memory data.
+
+# Returns a qurl (queue url) object, not yet connected.
+#
+sub qurl_make($$$$$$) {
+  my ($url, $seek_byte, $start_byte, $max_bytes, $bwlimit, $filename) = @_;
+  my ($proto, $host, $port, $path) = url_split ($url);
+  my %qurl = ( 
+    id            => 0,
+    url           => $url,
+    proto         => $proto,
+    host          => $host,
+    path          => $path,
+    seek_byte     => $seek_byte  || 0,
+    start_byte    => $start_byte || 0,
+    max_bytes     => $max_bytes  || 0,
+    bwlimit       => $bwlimit    || 0,
+    read_sock     => undef,
+    buf           => '',
+    http          => '',
+    head          => '',
+    filename      => $filename,
+    write_sock    => undef,
+    bytes_written => 0,
+    eof           => 0,
+    keepalive     => $keepalive_p,
+  );
+  return \%qurl;
+}
+
+
+# Open the connection and send the GET request.
+#
+sub qurl_get($;$$$$) {
+  my ($qurl, $referer, $start_byte, $max_bytes, $extra_headers) = @_;
+
+  my $user_agent = "$progname/$version";
+
+  {
+    my ($sock, $path) = sock_open ($qurl->{url});
+    $qurl->{read_sock} = $sock;
+    $qurl->{path} = $path;
+  }
+
+  my $hdrs = build_http_req ($qurl->{host}, $qurl->{path}, $referer,
+                             $start_byte, $max_bytes, $extra_headers);
+  syswrite ($qurl->{read_sock}, $hdrs) ||
+    error ('syswrite: ' . ($! || 'I/O error') . ": " . $qurl->{host});
+}
+
+
+# Having read a buffer of data, feed it into the qurl.
+#
+sub qurl_read_chunk($) {
+  my ($qurl) = @_;
+
+  # Using max SSL frame sized (16384) chunks improves performance by
+  # avoiding SSL frame splitting on sysread() of IO::Socket::SSL.
+  my $bufsiz = 16384;
+
+  my $id = $qurl->{id};
+  my $bwlimit = $qurl->{bwlimit} || 0;
+  $bufsiz = int ($bwlimit / 8)
+    if ($bwlimit && int($bwlimit / 8) < $bufsiz);
+
+  if ($qurl->{max_bytes}) {
+    my $remaining = $qurl->{max_bytes} - $qurl->{bytes_written};
+    $bufsiz = $remaining if ($remaining < $bufsiz);
+  }
+
+  if ($bufsiz <= 0) {
+    $qurl->{eof} = 1;
+  } else {
+    my $buf2 = '';
+    my $size = sysread_timeout ($qurl->{read_sock}, \$buf2, $bufsiz,
+                                $sysread_timeout);
+    print STDERR "  $id read $size\n" if ($verbose > 5);
+    $qurl->{buf} .= $buf2;
+    $qurl->{eof} = 1 if (!defined($size) || $size <= 0);
+  }
+
+  # If we don't have an HTTP response line yet, extract it from the buffer.
+  #
+  if (!$qurl->{http} &&
+      $qurl->{buf} =~ m/^(.*?)\r?\n(.*)$/s) {
+    ($qurl->{http}, $qurl->{buf}) = ($1, $2);
+
+    $qurl->{http} =~ s/[\r\n]+$//s;
+    print STDERR "  <== " . $qurl->{http} . "\n" if ($verbose > 3);
+
+    if (! ($qurl->{http} =~ m@^HTTP/[0-9.]+ 20\d@si)) {
+      $qurl->{eof} = 1;
+      error ($qurl->{filename} . ": " . $qurl->{http});
+    }
+  }
+
+  # If we don't have a complete header block yet, extract it from the buffer.
+  #
+  if (!$qurl->{head} &&
+      $qurl->{buf} =~ m/^(.*?)\r?\n\r?\n(.*)$/s) {
+    ($qurl->{head}, $qurl->{buf}) = ($1, $2);
+
+    if ($verbose > 3) {
+      foreach (split(/\n/, $qurl->{head})) {
+        s/\r$//gs;
+        print STDERR "  <== $_\n";
+      }
+      print STDERR "  <== \n";
+    }
+
+    if (!$qurl->{eof}) {
+
+      # Touch the file, since +< gets an error if it doesn't exist.
+      if (! -f $qurl->{filename}) {
+        open (my $fd, '>:raw', $qurl->{filename}) ||
+          error ($qurl->{filename} . ": $!");
+        close $fd;
+      }
+
+      open ($qurl->{write_sock}, '+<:raw', $qurl->{filename}) ||
+        error ($qurl->{filename} . ": $!");
+
+      seek ($qurl->{write_sock}, $qurl->{seek_byte}, SEEK_SET) ||
+        error ("$id seek: $!");
+
+      print STDERR "$progname: open \"" . $qurl->{filename} . "\"\n"
+        if ($verbose > 2);
+    }
+  }
+
+  if (!$qurl->{eof} && $qurl->{write_sock} && $qurl->{buf}) {
+    my $n = syswrite ($qurl->{write_sock}, $qurl->{buf});
+    error ("file " . $qurl->{filename} . ": " . ($! || "unknown error"))
+      if (($n || 0) <= 0);
+    $qurl->{bytes_written} += $n;
+    $qurl->{buf} = '';
+    print STDERR "  $id wrote $n (" . $qurl->{bytes_written} . ")\n"
+      if ($verbose > 5);
+  }
+
+  if (!$qurl->{eof} &&
+      $qurl->{max_bytes} &&
+      $qurl->{bytes_written} >= $qurl->{max_bytes}) {
+    $qurl->{eof} = 1;
+    print STDERR "  $id done (" . $qurl->{bytes_written} . ")\n"
+      if ($verbose > 5);
+  }
+
+  if ($qurl->{eof}) {
+
+    if ($qurl->{read_sock}) {
+      if ($qurl->{keepalive} &&
+          $qurl->{head} =~ m/^Connection: keep-alive/mi &&
+          $qurl->{head} =~ m/^Content-Length: /mi &&
+          !$keepalive{$qurl->{proto} . '://' . $qurl->{host}}) {
+        print STDERR "$progname: $id keepalive: " . $qurl->{host} . "\n"
+          if ($verbose > 2);
+        $keepalive{$qurl->{proto} . '://' . $qurl->{host}} =
+          $qurl->{read_sock};
+      } else {
+        close ($qurl->{read_sock}) ||
+          error ("close " . $qurl->{url} . ": $!");
+        $qurl->{read_sock} = undef;
+      }
+    }
+
+    $qurl->{keepalive} = 0;
+
+    if ($qurl->{write_sock}) {
+        close ($qurl->{write_sock}) ||
+        error ("close " . $qurl->{filename} . ": $!");
+      $qurl->{write_sock} = undef;
+    }
+
+  }
+}
+
+
+sub get_url_1_parallel($;$$$$$$$$) {
+  my ($url, $referer, $to_file, $bwlimit, $start_byte, $max_bytes,
+      $append_p, $progress_p, $extra_headers) = @_;
+
+  my $start_time = time();
+  my $actual_bits_per_sec = 0;
+
+  my $timeout = 30;
+
+  $start_byte = 0 unless defined($start_byte);
+
+  unlink ($to_file);
+
+  # Open the connection and send a GET, for the full range.
+  # This is how we learn the size of the full document.
+  my $qurl0 = qurl_make ($url, 0, $start_byte, $max_bytes, $bwlimit, $to_file);
+  qurl_get ($qurl0, $referer, $start_byte, $max_bytes, $extra_headers);
+
+  # Read from the URL until we have gotten the full header response.
+  # We may also have ended up reading part of the document body.
+  #
+  while (!$qurl0->{eof} &&
+         !$qurl0->{head} &&
+         $timeout > 0) {
+    my $rin = my $win = my $ein = '';
+    vec($rin, fileno($qurl0->{read_sock}), 1) = 1;
+    $ein = $rin | $win;
+    my ($nfound, $timeleft) =
+      select (my $rout = $rin, my $wout = $win, my $eout = $ein, $timeout);
+    $timeout = $timeleft;
+    if (vec($rin, fileno($qurl0->{read_sock}), 1)) {
+      qurl_read_chunk ($qurl0);
+    }
+  }
+
+  my ($cl, $document_length) =
+    parse_content_range ($url, $qurl0->{head}, $start_byte, $max_bytes);
+  error ("no content length: $url") unless $cl;
+
+  # My first thought was to have a maximum number of bytes for each worker
+  # to load, and then start up to N workers to load that; and start more
+  # workers once those dropped off.  But I think it makes more sense to just
+  # take the document size and divide by the number of workers.
+  #
+  my $max_workers = $parallel_loads;
+  # my $chunksize = 1024 * 1024 * 2;
+  my $chunksize = int (($cl / $max_workers) + 1);
+  my $min_chunksize = 1024 * 10;
+  $chunksize = $min_chunksize if ($chunksize < $min_chunksize);
+
+  my @pending_queue = ();
+  my @running_queue = ( $qurl0 );
+  my @all_qurls     = ( $qurl0 );
+
+  $max_bytes = $document_length unless $max_bytes;
+
+  # Tell the first chunk to read only $chunksize bytes, even though our GET
+  # requested the whole document.  We will terminate early.  Also it may have
+  # already read more than that.
+  #
+  $qurl0->{max_bytes} = ($chunksize > $qurl0->{bytes_written}
+                         ? $chunksize
+                         : $qurl0->{bytes_written});
+  $qurl0->{keepalive} = 0;  # No longer possible with early termination.
+
+  # Enqueue qurls for each subsequent chunk.
+  #
+  my $i = 1;
+  for (my $byte = $start_byte + $qurl0->{max_bytes},
+       my $seek = $qurl0->{max_bytes},
+       my $ochunk = $chunksize;
+       $byte < $start_byte + $max_bytes;
+       $byte += $ochunk,
+       $seek += $ochunk,
+       $ochunk = $chunksize) {
+    my $remaining = $max_bytes - $byte;
+    my $size = $chunksize;
+    $size = $remaining if ($remaining < $size);
+    if ($size > 0) {
+      my $qurl = qurl_make ($url, $seek, $byte, $size, $bwlimit, $to_file);
+      $qurl->{id} = $i;
+      push @pending_queue, $qurl;
+      push @all_qurls, $qurl;
+      print STDERR "$progname: enqueued $i $byte + $size = " .
+                   ($byte + $size) . "\n"
+        if ($verbose > 3);
+      $i++;
+    }
+  }
+
+  my $bytes = 0;
+  while (@pending_queue || @running_queue) {
+
+    # Move from pending to running as the running ones complete.
+    #
+    while (@pending_queue &&
+           @running_queue < $max_workers) {
+      my $qurl = shift @pending_queue;
+      qurl_get ($qurl, $referer, $qurl->{start_byte}, $qurl->{max_bytes},
+                $extra_headers);
+      push @running_queue, $qurl;
+    }
+
+    # Wait for network data and service each connection.
+    #
+    my $rin = my $win = my $ein = '';
+    foreach my $qurl (@running_queue) {
+      vec($rin, fileno($qurl->{read_sock}), 1) = 1;
+    }
+    $ein = $rin | $win;
+    my ($nfound, $timeleft) =
+      select (my $rout = $rin, my $wout = $win, my $eout = $ein, $timeout);
+    $timeout = $timeleft;
+    foreach my $qurl (@running_queue) {
+      if (vec($rin, fileno($qurl->{read_sock}), 1)) {
+        qurl_read_chunk ($qurl);
+      }
+    }
+
+    # Remove the finished ones from the running queue, and check for errors.
+    #
+    my @q2 = ();
+    foreach my $qurl (@running_queue) {
+      push @q2, $qurl unless ($qurl->{eof});
+    }
+    @running_queue = @q2;
+
+    # Progress.
+    #
+    $bytes = 0;
+    foreach my $qurl (@all_qurls) {
+      $bytes += ($qurl->{bytes_written});
+    }
+
+    my $now = time();
+    my $elapsed = $now - $start_time;
+    $actual_bits_per_sec = $bytes * 8 / ($elapsed <= 0 ? 1 : $elapsed);
+
+    draw_progress (($start_byte + $bytes) / $document_length,
+                   $actual_bits_per_sec, 0)
+      if ($progress_p);
+
+    bwlimit_throttle ($bwlimit, $start_time, $bytes, $actual_bits_per_sec);
+  }
+
+  draw_progress (($cl ? ($start_byte + $bytes) / $document_length : 0),
+                 $actual_bits_per_sec, 1)
+    if ($progress_p);
+
+  return ($qurl0->{http}, $qurl0->{head}, '', $bytes, $cl, $document_length);
+}
+
+
+##############################################################################
 
 
 # Runs ffmpeg to determine dimensions of the given video file.
@@ -2500,6 +2927,51 @@ my %ciphers = (
   'a081deec/player_ias.vflset/en_US/base' => '18850 s3 w4 w35 s3 w63 s2 r w51 s3',# 11 Aug 2021
   '50e823fc/player_ias.vflset/en_US/base' => '18851 r w43 w37 r s1 w60 r w39',# 12 Aug 2021
   '28f65009/player_ias.vflset/en_US/base' => '18857 s3 r s3',     # 18 Aug 2021
+  'b555ee94/player_ias.vflset/en_US/base' => '18858 w51 s3 w28 w29 w3 w47 r w1',# 19 Aug 2021
+  '31389f53/player_ias.vflset/en_US/base' => '18862 w39 r w41',   # 23 Aug 2021
+  'ee7f98d9/player_ias.vflset/en_US/base' => '18864 s3 w4 s2 r s1 w37 s3',# 25 Aug 2021
+  '528656c7/player_ias.vflset/en_US/base' => '18865 r s2 w64 r w68 s3 w56 w49 s3',# 26 Aug 2021
+  'c29c59cf/player_ias.vflset/en_US/base' => '18869 w19 w39 s3',  # 30 Aug 2021
+  'f5eab513/player_ias.vflset/en_US/base' => '18871 w49 s3 w2 r w27 s2',# 01 Sep 2021
+  '9da24d97/player_ias.vflset/en_US/base' => '18872 w59 w17 r',   # 02 Sep 2021
+  'a1c3b4e5/player_ias.vflset/en_US/base' => '18876 r w39 s3',    # 06 Sep 2021
+  'c21a8219/player_ias.vflset/en_US/base' => '18878 w27 w66 r w27 w53 s3 w18 s3',# 08 Sep 2021
+  '1cc7c82c/player_ias.vflset/en_US/base' => '18879 r s3 w12 s2 w58 r s3 w42 s3',# 09 Sep 2021
+  '1256b7e2/player_ias.vflset/en_US/base' => '18883 w12 s3 w28',  # 13 Sep 2021
+  'd7a19ed1/player_ias.vflset/en_US/base' => '18886 r s2 w15 w15 s3',# 16 Sep 2021
+  '202721c6/player_ias.vflset/en_US/base' => '18890 s3 w35 r s3 r',# 20 Sep 2021
+  '54d85b95/player_ias.vflset/en_US/base' => '18893 w70 s3 w17 s2 r w37 s1',# 23 Sep 2021
+  'd82ca80e/player_ias.vflset/en_US/base' => '18894 r s3 r s1 w43 w42',# 25 Sep 2021
+  '9fd4fd09/player_ias.vflset/en_US/base' => '18900 r w37 s3 r s1 r s1 w9',# 30 Sep 2021
+  'd33d444d/player_ias.vflset/en_US/base' => '18904 r w9 w25 r',  # 04 Oct 2021
+  '37e2b9da/player_ias.vflset/en_US/base' => '18906 s1 r s2',     # 06 Oct 2021
+  '920e4583/player_ias.vflset/en_US/base' => '18907 w66 r w11 s2',# 07 Oct 2021
+  '387dfd49/player_ias.vflset/en_US/base' => '18911 s1 w53 s3 w10 w5 w12 s3 r',# 11 Oct 2021
+  '5ba7be96/player_ias.vflset/en_US/base' => '18913 s1 w24 s3 w35 s2',# 13 Oct 2021
+  '03869671/player_ias.vflset/en_US/base' => '18914 s2 r s3 r s3 r s3 r w11',# 14 Oct 2021
+  '9e457a67/player_ias.vflset/en_US/base' => '18918 w57 s2 r s3', # 18 Oct 2021
+  '26b082a8/player_ias.vflset/en_US/base' => '18920 w3 s2 r s2 w47 s1',# 20 Oct 2021
+  'bc6d77fc/player_ias.vflset/en_US/base' => '18925 r w19 r s3 w48 r s1',# 25 Oct 2021
+  '9a0939d3/player_ias.vflset/en_US/base' => '18926 w51 w23 r w8',# 26 Oct 2021
+  '9216d1f7/player_ias.vflset/en_US/base' => '18927 w35 s2 w46 r',# 27 Oct 2021
+  'f8cb7a3b/player_ias.vflset/en_US/base' => '18932 r s2 r w1 r s1 w56 s1 r',# 01 Nov 2021
+  '8eb5bf0c/player_ias.vflset/en_US/base' => '18934 s3 r s3',     # 03 Nov 2021
+  'ea6a4ba6/player_ias.vflset/en_US/base' => '18939 w1 s3 w54 r', # 08 Nov 2021
+  '8d287e4d/player_ias.vflset/en_US/base' => '18942 r s2 r',      # 11 Nov 2021
+  '2dfe380c/player_ias.vflset/en_US/base' => '18946 w38 r s3 r w19 w29 w26 w33 s3',# 15 Nov 2021
+  '68e11abe/player_ias.vflset/en_US/base' => '18948 w13 r s1 r w65 s3',# 17 Nov 2021
+  'ad2aeb77/player_ias.vflset/en_US/base' => '18949 w22 w31 r w55 s1 w67 w31',# 18 Nov 2021
+  'a4610635/player_ias.vflset/en_US/base' => '18950 w38 r w12 w63 r w25',# 19 Nov 2021
+  '4c89207b/player_ias.vflset/en_US/base' => '18952 s1 w52 w34 w39 s2 r s1 r s3',# 21 Nov 2021
+  '10df06bb/player_ias.vflset/en_US/base' => '18954 w44 w64 w48 w7 s3 r',# 23 Nov 2021
+  '3ce4f9b8/player_ias.vflset/en_US/base' => '18960 r w37 r w45 w8 r',# 29 Nov 2021
+  'eea703f3/player_ias.vflset/en_US/base' => '18962 r w22 r w33 s2',# 01 Dec 2021
+  '54223c10/player_ias.vflset/en_US/base' => '18963 r w40 s3 w56 w59 r',# 02 Dec 2021
+  '8040e515/player_ias.vflset/en_US/base' => '18965 r s1 r s2 w12 r w18 r',# 05 Dec 2021
+  '0c96dfd3/player_ias.vflset/en_US/base' => '18967 w43 w29 r w6 w45 r w40',# 06 Dec 2021
+  '46ac5f60/player_ias.vflset/en_US/base' => '18968 r s1 w30',    # 07 Dec 2021
+  'a515f6d1/player_ias.vflset/en_US/base' => '18969 r w63 s3 r s1 r s2',# 08 Dec 2021
+  'dc05ba20/player_ias.vflset/en_US/base' => '18970 r w48 r s1',  # 10 Dec 2021
 );
 
 
@@ -2935,6 +3407,9 @@ sub youtube_parse_urlmap($$$;$) {
     $urlmap =~ s/&\{/,/gs;
   }
 
+  error ("video has not yet premiered")
+    if ($urlmap =~ m/source=yt_premiere_broadcast/gs);
+
   my $count = 0;
   foreach my $mapelt (split (/,/, $urlmap)) {
     # Format used to be: "N|url,N|url,N|url"
@@ -2998,6 +3473,7 @@ sub youtube_parse_urlmap($$$;$) {
 #      # stream, so it took us several retries to fail here.
 #      if (!$v && $urlmap =~ m/\bconn=rtmpe%3A/s);
 
+    #next unless ($k && $v);
     errorI ("$id: unparsable urlmap entry: no itag: $mapelt") unless ($k);
     errorI ("$id: unparsable urlmap entry: no url: $mapelt")  unless ($v);
 
@@ -3129,6 +3605,20 @@ sub youtube_parse_urlmap($$$;$) {
 #  - And sometimes there are no DASH URLs.
 
 
+# Sep 2021: It no longer seems possible to get video formats of age-restricted
+# videos. There's a new replacement for get_video_info that looks like this:
+#
+#   POST to https://www.youtube.com/youtubei/v1/player?key=$key
+#   with: { "context": {
+#             "client": { "hl": "en", "clientName": "WEB",
+#                         "clientVersion": "[$vv]",
+#                         "mainAppWebInfo": { "graftUrl": "/watch?v=$vid" }}},
+#           "videoId": "$vid" }
+#
+# But that doesn't return underlying formats for age-restricted videos either.
+
+
+
 # Parses a dashmpd URL and inserts the contents into $fmts
 # as per youtube_parse_urlmap.
 #
@@ -3235,6 +3725,7 @@ my $blocked_re = join ('|',
                         'is not available',
                         'is unavailable',
                         'video unavailable',
+                        'video does not exist',
                         'is not embeddable',
                         'can\'t download rental videos',
                         'livestream videos',
@@ -3360,6 +3851,12 @@ sub load_youtube_formats_html($$$) {
     unless (check_http_status ($id, $url, $http, 0));
   $err = "no ytplayer.config$oerror"
     if (!$args && !$err);
+
+  if (!$err &&
+      $body =~ m@"LIVE_STREAM_OFFLINE","reason":"(Premieres[^\"]+)@s) {
+    $err = $1;
+    $args = '';
+  }
 
   my ($cipher) = page_cipher_base_url ($url, $body);
 
@@ -3703,6 +4200,7 @@ sub load_youtube_formats($$$) {
   # Which error sucks less? Hard to say.
   # my $err = $err2 || $err;
   my $err = $err2 || $err1;
+  $err = $err1 if ($err1 =~ m/premiere/si);
 
   my $both = ($err1 || '') . ' ' . ($err2 || '');
   $err = 'age-restricted video is not embeddable'
@@ -3849,7 +4347,7 @@ sub load_vimeo_formats($$$) {
       next unless (length($f) > 50);
     # my ($fmt)  = ($f =~ m@^ \" (.+?) \": @six);
     #    ($fmt)  = ($f =~ m@^ \{ "profile": (\d+) @six) unless $fmt;
-      my ($fmt)  = ($f =~ m@^ \{ "profile": (\d+) @six);
+      my ($fmt)  = ($f =~ m@^ \{ "profile": \"? (\d+) @six);
       next unless $fmt;
       next if ($seen{$fmt});
       my ($url2) = ($f =~ m@ "url"    : \s* " (.*?) " @six);
@@ -5914,7 +6412,7 @@ sub download_video_url($$$$$$$$$$$$) {
         draw_progress (1, $bps, 1) if ($progress_p);
 
       } else {
-        my $force_ranges_p = 1;
+        my $force_ranges_p = ($parallel_loads <= 1);
         my ($http, $head, $body) = get_url ($url2, undef, $file,
                                             $bwlimit, undef, 0, $progress_p,
                                             $force_ranges_p);
@@ -6264,6 +6762,7 @@ sub usage() {
            "\t\t   [--title txt] [--prefix txt] [--suffix] [--out file]\n" .
            "\t\t   [--fmt N] [--no-mux] [--bwlimit N [kb | KB | mb | MB]]\n" .
            "\t\t   [--max-size WxH] [--webm] [--webm-transcode]\n" .
+           "\t\t   [--parallel-loads N]\n" .
            "\t\t   youtube-or-vimeo-urls ...\n";
   exit 1;
 }
@@ -6325,6 +6824,7 @@ sub main() {
     elsif (m/^--?no-?webm-trans(code)?$/) { $webm_transcode_p = 0; }
     elsif (m/^--?max-size$/) { $max_size = parse_size ($_, shift @ARGV); }
     elsif (m/^--?guess$/)    { $guessp++; }
+    elsif (m/^--?para(l+el+(-loads?)?)?$/) { $parallel_loads = 0+shift @ARGV; }
     elsif (m/^--?bwlimit$/) {
       #
       # Many variant spellings are allowed:
