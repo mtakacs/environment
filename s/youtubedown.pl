@@ -19,11 +19,11 @@
 #  --out "FILE"      Output to this exact file name, ignoring title, suffix.
 #  --progress        Show a textual progress bar for downloads.
 #  --bwlimit Nkbps   Throttle download speed.
-#  --parallel N	     Bypass rate limiting by making N multiple simultaneous
-#		     connections. Default 30.
+#  --parallel N      Bypass rate limiting by making N multiple simultaneous
+#        connections. Default 30.
 #
 #  --size            Instead of downloading it all, print video dimensions.
-#		     This requires "ffmpeg".
+#        This requires "ffmpeg".
 #
 #  --list            List the underlying URLs of a playlist.
 #  --list --list     List IDs and titles of a playlist.
@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1806 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1831 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -151,7 +151,7 @@ my $errorI = ("\n" .
               "\n\tyou can assume that I am already aware of it." .
               "\n" .
               "\n");
-my $error_whiteboard = '';	# for signature diagnostics
+my $error_whiteboard = '';  # for signature diagnostics
 
 sub errorI($) {
   my ($err) = @_;
@@ -236,19 +236,19 @@ sub draw_progress($$$) {
     $pct =~ s/^  /. /s;
     my $L = length($pct);
     my $OL = length($progress_rubout);
-    print STDERR $progress_rubout if ($OL && $cursep);	# erase previous pct
+    print STDERR $progress_rubout if ($OL && $cursep);  # erase previous pct
     $progress_rubout = "\b" x $L;
     while ($ticks > $progress_ticks) {
       print STDERR ".";
       $progress_ticks++;
     }
     print STDERR $pct;
-    my $L2 = $OL - $L;	# If the current pct is shorter, clear to EOL
+    my $L2 = $OL - $L;  # If the current pct is shorter, clear to EOL
     print STDERR ((' ' x $L2) . ("\b" x $L2))
       if ($L2 > 0 && $cursep);
     print STDERR "\n" unless ($cursep);
   }
-  print STDERR "\r" . (' ' x ($cols + 4)) . "\r"	# erase line
+  print STDERR "\r" . (' ' x ($cols + 4)) . "\r"  # erase line
     if ($eof && $cursep);
   $progress_time = $now;
   $progress_ticks = 0 if ($eof || !$cursep);
@@ -826,7 +826,7 @@ sub get_url_1($;$$$$$$$$) {
     } else {
       print STDERR "  <== [ body ]: $bytes bytes\n";
       if ($verbose > 4 &&
-          $head =~ m@^Content-Type: \s*		# Safe types to dump to stderr
+          $head =~ m@^Content-Type: \s*   # Safe types to dump to stderr
                       ( text/ |
                         application/json |
                         application/x-www- |
@@ -950,7 +950,7 @@ sub get_url($;$$$$$$$$) {
       $error_count--;
     }
 
-    if ($http =~ m@^HTTP/[0-9.]+ 30[123]@si) {		# Redirects
+    if ($http =~ m@^HTTP/[0-9.]+ 30[123]@si) {    # Redirects
       my ($location) = ($head =~ m@^Location:[ \t]*([^\r\n]+)@mi);
       if (! $location) {
         $http = 'HTTP/1.1 500 no location header in 30x';
@@ -978,7 +978,7 @@ sub get_url($;$$$$$$$$) {
       error ("too many redirects ($max_redirects) from $orig_url")
         if ($redirect_count++ > $max_redirects);
 
-    } elsif (! ($http =~ m@^HTTP/[0-9.]+ 20\d@si)) {	# Errors
+    } elsif (! ($http =~ m@^HTTP/[0-9.]+ 20\d@si)) {  # Errors
 
       if ($body =~ m@([^<>.:]*verify that you are a human[^<>.:]*)@si) {
         # Vimeo: there's no coming back from this, don't retry.
@@ -990,7 +990,7 @@ sub get_url($;$$$$$$$$) {
         $max_errors = $error_count+1;
       }
 
-      return ($http, $head, $body, $url)	# Return error to caller.
+      return ($http, $head, $body, $url)  # Return error to caller.
         if (++$error_count >= $max_errors);
 
       print STDERR "$progname: $http: retrying $url\n"
@@ -1013,7 +1013,7 @@ sub get_url($;$$$$$$$$) {
         if ($verbose > 3);
 
     } else {
-      return ($http, $head, $body, $url);	# 100%, or HTTP error.
+      return ($http, $head, $body, $url); # 100%, or HTTP error.
     }
   } while (1);
 }
@@ -1761,221 +1761,221 @@ sub video_url_size($$;$$$) {
 # of Nov 2018 or so?
 #
 my %ciphers = (
-# 'vflNzKG7n' => '135957536242 s3 r s2 r s1 r w67',		  # 30 Jan 2013
-# 'vfllMCQWM' => '136089118952 s2 w46 r w27 s2 w43 s2 r',	  # 14 Feb 2013
-# 'vflJv8FA8' => '136304655662 s1 w51 w52 r',			  # 11 Mar 2013
-# 'vflR_cX32' => '1580 s2 w64 s3',				  # 11 Apr 2013
-# 'vflveGye9' => '1582 w21 w3 s1 r w44 w36 r w41 s1',		  # 02 May 2013
-# 'vflj7Fxxt' => '1583 r s3 w3 r w17 r w41 r s2',		  # 14 May 2013
-# 'vfltM3odl' => '1584 w60 s1 w49 r s1 w7 r s2 r',		  # 23 May 2013
-# 'vflDG7-a-' => '1586 w52 r s3 w21 r s3 r',			  # 06 Jun 2013
-# 'vfl39KBj1' => '1586 w52 r s3 w21 r s3 r',			  # 12 Jun 2013
-# 'vflmOfVEX' => '1586 w52 r s3 w21 r s3 r',			  # 21 Jun 2013
-# 'vflJwJuHJ' => '1588 r s3 w19 r s2',				  # 25 Jun 2013
-# 'vfl_ymO4Z' => '1588 r s3 w19 r s2',				  # 26 Jun 2013
-# 'vfl26ng3K' => '15888 r s2 r',				  # 08 Jul 2013
-# 'vflcaqGO8' => '15897 w24 w53 s2 w31 w4',			  # 11 Jul 2013
-# 'vflQw-fB4' => '15902 s2 r s3 w9 s3 w43 s3 r w23',		  # 16 Jul 2013
-# 'vflSAFCP9' => '15904 r s2 w17 w61 r s1 w7 s1',		  # 18 Jul 2013
-# 'vflART1Nf' => '15908 s3 r w63 s2 r s1',			  # 22 Jul 2013
-# 'vflLC8JvQ' => '15910 w34 w29 w9 r w39 w24',			  # 25 Jul 2013
-# 'vflm_D8eE' => '15916 s2 r w39 w55 w49 s3 w56 w2',		  # 30 Jul 2013
-# 'vflTWC9KW' => '15917 r s2 w65 r',				  # 31 Jul 2013
-# 'vflRFcHMl' => '15921 s3 w24 r',				  # 04 Aug 2013
-# 'vflM2EmfJ' => '15920 w10 r s1 w45 s2 r s3 w50 r',		  # 06 Aug 2013
-# 'vflz8giW0' => '15919 s2 w18 s3',				  # 07 Aug 2013
-# 'vfl_wGgYV' => '15923 w60 s1 r s1 w9 s3 r s3 r',		  # 08 Aug 2013
-# 'vfl1HXdPb' => '15926 w52 r w18 r s1 w44 w51 r s1',		  # 12 Aug 2013
-# 'vflkn6DAl' => '15932 w39 s2 w57 s2 w23 w35 s2',		  # 15 Aug 2013
-# 'vfl2LOvBh' => '15933 w34 w19 r s1 r s3 w24 r',		  # 16 Aug 2013
-# 'vfl-bxy_m' => '15936 w48 s3 w37 s2',				  # 20 Aug 2013
-# 'vflZK4ZYR' => '15938 w19 w68 s1',				  # 21 Aug 2013
-# 'vflh9ybst' => '15936 w48 s3 w37 s2',				  # 21 Aug 2013
-# 'vflapUV9V' => '15943 s2 w53 r w59 r s2 w41 s3',		  # 27 Aug 2013
-# 'vflg0g8PQ' => '15944 w36 s3 r s2',				  # 28 Aug 2013
-# 'vflHOr_nV' => '15947 w58 r w50 s1 r s1 r w11 s3',		  # 30 Aug 2013
-# 'vfluy6kdb' => '15953 r w12 w32 r w34 s3 w35 w42 s2',		  # 05 Sep 2013
-# 'vflkuzxcs' => '15958 w22 w43 s3 r s1 w43',			  # 10 Sep 2013
-# 'vflGNjMhJ' => '15956 w43 w2 w54 r w8 s1',			  # 12 Sep 2013
-# 'vfldJ8xgI' => '15964 w11 r w29 s1 r s3',			  # 17 Sep 2013
-# 'vfl79wBKW' => '15966 s3 r s1 r s3 r s3 w59 s2',		  # 19 Sep 2013
-# 'vflg3FZfr' => '15969 r s3 w66 w10 w43 s2',			  # 24 Sep 2013
-# 'vflUKrNpT' => '15973 r s2 r w63 r',				  # 25 Sep 2013
-# 'vfldWnjUz' => '15976 r s1 w68',				  # 30 Sep 2013
-# 'vflP7iCEe' => '15981 w7 w37 r s1',				  # 03 Oct 2013
-# 'vflzVne63' => '15982 w59 s2 r',				  # 07 Oct 2013
-# 'vflO-N-9M' => '15986 w9 s1 w67 r s3',			  # 09 Oct 2013
-# 'vflZ4JlpT' => '15988 s3 r s1 r w28 s1',			  # 11 Oct 2013
-# 'vflDgXSDS' => '15988 s3 r s1 r w28 s1',			  # 15 Oct 2013
-# 'vflW444Sr' => '15995 r w9 r s1 w51 w27 r s1 r',		  # 17 Oct 2013
-# 'vflK7RoTQ' => '15996 w44 r w36 r w45',			  # 21 Oct 2013
-# 'vflKOCFq2' => '16 s1 r w41 r w41 s1 w15',			  # 23 Oct 2013
-# 'vflcLL31E' => '16 s1 r w41 r w41 s1 w15',			  # 28 Oct 2013
-# 'vflz9bT3N' => '16 s1 r w41 r w41 s1 w15',			  # 31 Oct 2013
-# 'vfliZsE79' => '16010 r s3 w49 s3 r w58 s2 r s2',		  # 05 Nov 2013
-# 'vfljOFtAt' => '16014 r s3 r s1 r w69 r',			  # 07 Nov 2013
-# 'vflqSl9GX' => '16023 w32 r s2 w65 w26 w45 w24 w40 s2',	  # 14 Nov 2013
-# 'vflFrKymJ' => '16023 w32 r s2 w65 w26 w45 w24 w40 s2',	  # 15 Nov 2013
-# 'vflKz4WoM' => '16027 w50 w17 r w7 w65',			  # 19 Nov 2013
-# 'vflhdWW8S' => '16030 s2 w55 w10 s3 w57 r w25 w41',		  # 21 Nov 2013
-# 'vfl66X2C5' => '16031 r s2 w34 s2 w39',			  # 26 Nov 2013
-# 'vflCXG8Sm' => '16031 r s2 w34 s2 w39',			  # 02 Dec 2013
-# 'vfl_3Uag6' => '16034 w3 w7 r s2 w27 s2 w42 r',		  # 04 Dec 2013
-# 'vflQdXVwM' => '16047 s1 r w66 s2 r w12',			  # 10 Dec 2013
-# 'vflCtc3aO' => '16051 s2 r w11 r s3 w28',			  # 12 Dec 2013
-# 'vflCt6YZX' => '16051 s2 r w11 r s3 w28',			  # 17 Dec 2013
-# 'vflG49soT' => '16057 w32 r s3 r s1 r w19 w24 s3',		  # 18 Dec 2013
-# 'vfl4cHApe' => '16059 w25 s1 r s1 w27 w21 s1 w39',		  # 06 Jan 2014
-# 'vflwMrwdI' => '16058 w3 r w39 r w51 s1 w36 w14',		  # 06 Jan 2014
-# 'vfl4AMHqP' => '16060 r s1 w1 r w43 r s1 r',			  # 09 Jan 2014
-# 'vfln8xPyM' => '16080 w36 w14 s1 r s1 w54',			  # 10 Jan 2014
-# 'vflVSLmnY' => '16081 s3 w56 w10 r s2 r w28 w35',		  # 13 Jan 2014
-# 'vflkLvpg7' => '16084 w4 s3 w53 s2',				  # 15 Jan 2014
-# 'vflbxes4n' => '16084 w4 s3 w53 s2',				  # 15 Jan 2014
-# 'vflmXMtFI' => '16092 w57 s3 w62 w41 s3 r w60 r',		  # 23 Jan 2014
-# 'vflYDqEW1' => '16094 w24 s1 r s2 w31 w4 w11 r',		  # 24 Jan 2014
-# 'vflapGX6Q' => '16093 s3 w2 w59 s2 w68 r s3 r s1',		  # 28 Jan 2014
-# 'vflLCYwkM' => '16093 s3 w2 w59 s2 w68 r s3 r s1',		  # 29 Jan 2014
-# 'vflcY_8N0' => '16100 s2 w36 s1 r w18 r w19 r',		  # 30 Jan 2014
-# 'vfl9qWoOL' => '16104 w68 w64 w28 r',				  # 03 Feb 2014
-# 'vfle-mVwz' => '16103 s3 w7 r s3 r w14 w59 s3 r',		  # 04 Feb 2014
-# 'vfltdb6U3' => '16106 w61 w5 r s2 w69 s2 r',			  # 05 Feb 2014
-# 'vflLjFx3B' => '16107 w40 w62 r s2 w21 s3 r w7 s3',		  # 10 Feb 2014
-# 'vfliqjKfF' => '16107 w40 w62 r s2 w21 s3 r w7 s3',		  # 13 Feb 2014
-# 'ima-vflxBu-5R' => '16107 w40 w62 r s2 w21 s3 r w7 s3',	  # 13 Feb 2014
-# 'ima-vflrGwWV9' => '16119 w36 w45 r s2 r',			  # 20 Feb 2014
-# 'ima-vflCME3y0' => '16128 w8 s2 r w52',			  # 27 Feb 2014
-# 'ima-vfl1LZyZ5' => '16128 w8 s2 r w52',			  # 27 Feb 2014
-# 'ima-vfl4_saJa' => '16130 r s1 w19 w9 w57 w38 s3 r s2',	  # 01 Mar 2014
-# 'ima-en_US-vflP9269H' => '16129 r w63 w37 s3 r w14 r',	  # 06 Mar 2014
-# 'ima-en_US-vflkClbFb' => '16136 s1 w12 w24 s1 w52 w70 s2',	  # 07 Mar 2014
-# 'ima-en_US-vflYhChiG' => '16137 w27 r s3',			  # 10 Mar 2014
-# 'ima-en_US-vflWnCYSF' => '16142 r s1 r s3 w19 r w35 w61 s2',	  # 13 Mar 2014
-# 'en_US-vflbT9-GA' => '16146 w51 w15 s1 w22 s1 w41 r w43 r',	  # 17 Mar 2014
-# 'en_US-vflAYBrl7' => '16144 s2 r w39 w43',			  # 18 Mar 2014
-# 'en_US-vflS1POwl' => '16145 w48 s2 r s1 w4 w35',		  # 19 Mar 2014
-# 'en_US-vflLMtkhg' => '16149 w30 r w30 w39',			  # 20 Mar 2014
-# 'en_US-vflbJnZqE' => '16151 w26 s1 w15 w3 w62 w54 w22',	  # 24 Mar 2014
-# 'en_US-vflgd5txb' => '16151 w26 s1 w15 w3 w62 w54 w22',	  # 25 Mar 2014
-# 'en_US-vflTm330y' => '16151 w26 s1 w15 w3 w62 w54 w22',	  # 26 Mar 2014
-# 'en_US-vflnwMARr' => '16156 s3 r w24 s2',			  # 27 Mar 2014
-# 'en_US-vflTq0XZu' => '16160 r w7 s3 w28 w52 r',		  # 31 Mar 2014
-# 'en_US-vfl8s5-Vs' => '16158 w26 s1 w14 r s3 w8',		  # 01 Apr 2014
-# 'en_US-vfl7i9w86' => '16158 w26 s1 w14 r s3 w8',		  # 02 Apr 2014
-# 'en_US-vflA-1YdP' => '16158 w26 s1 w14 r s3 w8',		  # 03 Apr 2014
-# 'en_US-vflZwcnOf' => '16164 w46 s2 w29 r s2 w51 w20 s1',	  # 07 Apr 2014
-# 'en_US-vflFqBlmB' => '16164 w46 s2 w29 r s2 w51 w20 s1',	  # 08 Apr 2014
-# 'en_US-vflG0UvOo' => '16164 w46 s2 w29 r s2 w51 w20 s1',	  # 09 Apr 2014
-# 'en_US-vflS6PgfC' => '16170 w40 s2 w40 r w56 w26 r s2',	  # 10 Apr 2014
-# 'en_US-vfl6Q1v_C' => '16172 w23 r s2 w55 s2',			  # 15 Apr 2014
-# 'en_US-vflMYwWq8' => '16177 w51 w32 r s1 r s3',		  # 17 Apr 2014
-# 'en_US-vflGC4r8Z' => '16184 w17 w34 w66 s3',			  # 24 Apr 2014
-# 'en_US-vflyEvP6v' => '16189 s1 r w26',			  # 29 Apr 2014
-# 'en_US-vflm397e5' => '16189 s1 r w26',			  # 01 May 2014
-# 'en_US-vfldK8353' => '16192 r s3 w32',			  # 03 May 2014
-# 'en_US-vflPTD6yH' => '16196 w59 s1 w66 s3 w10 r w55 w70 s1',	  # 06 May 2014
-# 'en_US-vfl7KJl0G' => '16196 w59 s1 w66 s3 w10 r w55 w70 s1',	  # 07 May 2014
-# 'en_US-vflhUwbGZ' => '16200 w49 r w60 s2 w61 s3',		  # 12 May 2014
-# 'en_US-vflzEDYyE' => '16200 w49 r w60 s2 w61 s3',		  # 13 May 2014
-# 'en_US-vflimfEzR' => '16205 r s2 w68 w28',			  # 15 May 2014
-# 'en_US-vfl_nbW1R' => '16206 r w8 r s3',			  # 20 May 2014
-# 'en_US-vfll7obaF' => '16212 w48 w17 s2',			  # 22 May 2014
-# 'en_US-vfluBAJ91' => '16216 w13 s1 w39',			  # 27 May 2014
-# 'en_US-vfldOnicU' => '16217 s2 r w7 w21 r',			  # 28 May 2014
-# 'en_US-vflbbaSdm' => '16221 w46 r s3 w19 r s2 w15',		  # 03 Jun 2014
-# 'en_US-vflIpxel5' => '16225 r w16 w35',			  # 04 Jun 2014
-# 'en_US-vfloyxzv5' => '16232 r w30 s3 r s3 r',			  # 11 Jun 2014
-# 'en_US-vflmY-xcZ' => '16230 w25 r s1 w49 w52',		  # 12 Jun 2014
-# 'en_US-vflMVaJmz' => '16236 w12 s3 w56 r s2 r',		  # 17 Jun 2014
-# 'en_US-vflgt97Vg' => '16240 r s1 r',				  # 19 Jun 2014
-# 'en_US-vfl19qQQ_' => '16241 s2 w55 s2 r w39 s2 w5 r s3',	  # 23 Jun 2014
-# 'en_US-vflws3c7_' => '16243 r s1 w52',			  # 24 Jun 2014
-# 'en_US-vflPqsNqq' => '16243 r s1 w52',			  # 25 Jun 2014
-# 'en_US-vflycBCEX' => '16247 w12 s1 r s3 w17 s1 w9 r',		  # 26 Jun 2014
-# 'en_US-vflhZC-Jn' => '16252 w69 w70 s3',			  # 01 Jul 2014
-# 'en_US-vfl9r3Wpv' => '16255 r s3 w57',			  # 07 Jul 2014
-# 'en_US-vfl6UPpbU' => '16259 w37 r s1',			  # 08 Jul 2014
-# 'en_US-vfl_oxbbV' => '16259 w37 r s1',			  # 09 Jul 2014
-# 'en_US-vflXGBaUN' => '16259 w37 r s1',			  # 10 Jul 2014
-# 'en_US-vflM1arS5' => '16262 s1 r w42 r s1 w27 r w54',		  # 11 Jul 2014
-# 'en_US-vfl0Cbn9e' => '16265 w15 w44 r w24 s3 r w2 w50',	  # 14 Jul 2014
-# 'en_US-vfl5aDZwb' => '16265 w15 w44 r w24 s3 r w2 w50',	  # 15 Jul 2014
-# 'en_US-vflqZIm5b' => '16268 w1 w32 s1 r s3 r s3 r',		  # 17 Jul 2014
-# 'en_US-vflBb0OQx' => '16272 w53 r w9 s2 r s1',		  # 22 Jul 2014
+# 'vflNzKG7n' => '135957536242 s3 r s2 r s1 r w67',     # 30 Jan 2013
+# 'vfllMCQWM' => '136089118952 s2 w46 r w27 s2 w43 s2 r',   # 14 Feb 2013
+# 'vflJv8FA8' => '136304655662 s1 w51 w52 r',       # 11 Mar 2013
+# 'vflR_cX32' => '1580 s2 w64 s3',          # 11 Apr 2013
+# 'vflveGye9' => '1582 w21 w3 s1 r w44 w36 r w41 s1',     # 02 May 2013
+# 'vflj7Fxxt' => '1583 r s3 w3 r w17 r w41 r s2',     # 14 May 2013
+# 'vfltM3odl' => '1584 w60 s1 w49 r s1 w7 r s2 r',      # 23 May 2013
+# 'vflDG7-a-' => '1586 w52 r s3 w21 r s3 r',        # 06 Jun 2013
+# 'vfl39KBj1' => '1586 w52 r s3 w21 r s3 r',        # 12 Jun 2013
+# 'vflmOfVEX' => '1586 w52 r s3 w21 r s3 r',        # 21 Jun 2013
+# 'vflJwJuHJ' => '1588 r s3 w19 r s2',          # 25 Jun 2013
+# 'vfl_ymO4Z' => '1588 r s3 w19 r s2',          # 26 Jun 2013
+# 'vfl26ng3K' => '15888 r s2 r',          # 08 Jul 2013
+# 'vflcaqGO8' => '15897 w24 w53 s2 w31 w4',       # 11 Jul 2013
+# 'vflQw-fB4' => '15902 s2 r s3 w9 s3 w43 s3 r w23',      # 16 Jul 2013
+# 'vflSAFCP9' => '15904 r s2 w17 w61 r s1 w7 s1',     # 18 Jul 2013
+# 'vflART1Nf' => '15908 s3 r w63 s2 r s1',        # 22 Jul 2013
+# 'vflLC8JvQ' => '15910 w34 w29 w9 r w39 w24',        # 25 Jul 2013
+# 'vflm_D8eE' => '15916 s2 r w39 w55 w49 s3 w56 w2',      # 30 Jul 2013
+# 'vflTWC9KW' => '15917 r s2 w65 r',          # 31 Jul 2013
+# 'vflRFcHMl' => '15921 s3 w24 r',          # 04 Aug 2013
+# 'vflM2EmfJ' => '15920 w10 r s1 w45 s2 r s3 w50 r',      # 06 Aug 2013
+# 'vflz8giW0' => '15919 s2 w18 s3',         # 07 Aug 2013
+# 'vfl_wGgYV' => '15923 w60 s1 r s1 w9 s3 r s3 r',      # 08 Aug 2013
+# 'vfl1HXdPb' => '15926 w52 r w18 r s1 w44 w51 r s1',     # 12 Aug 2013
+# 'vflkn6DAl' => '15932 w39 s2 w57 s2 w23 w35 s2',      # 15 Aug 2013
+# 'vfl2LOvBh' => '15933 w34 w19 r s1 r s3 w24 r',     # 16 Aug 2013
+# 'vfl-bxy_m' => '15936 w48 s3 w37 s2',         # 20 Aug 2013
+# 'vflZK4ZYR' => '15938 w19 w68 s1',          # 21 Aug 2013
+# 'vflh9ybst' => '15936 w48 s3 w37 s2',         # 21 Aug 2013
+# 'vflapUV9V' => '15943 s2 w53 r w59 r s2 w41 s3',      # 27 Aug 2013
+# 'vflg0g8PQ' => '15944 w36 s3 r s2',         # 28 Aug 2013
+# 'vflHOr_nV' => '15947 w58 r w50 s1 r s1 r w11 s3',      # 30 Aug 2013
+# 'vfluy6kdb' => '15953 r w12 w32 r w34 s3 w35 w42 s2',     # 05 Sep 2013
+# 'vflkuzxcs' => '15958 w22 w43 s3 r s1 w43',       # 10 Sep 2013
+# 'vflGNjMhJ' => '15956 w43 w2 w54 r w8 s1',        # 12 Sep 2013
+# 'vfldJ8xgI' => '15964 w11 r w29 s1 r s3',       # 17 Sep 2013
+# 'vfl79wBKW' => '15966 s3 r s1 r s3 r s3 w59 s2',      # 19 Sep 2013
+# 'vflg3FZfr' => '15969 r s3 w66 w10 w43 s2',       # 24 Sep 2013
+# 'vflUKrNpT' => '15973 r s2 r w63 r',          # 25 Sep 2013
+# 'vfldWnjUz' => '15976 r s1 w68',          # 30 Sep 2013
+# 'vflP7iCEe' => '15981 w7 w37 r s1',         # 03 Oct 2013
+# 'vflzVne63' => '15982 w59 s2 r',          # 07 Oct 2013
+# 'vflO-N-9M' => '15986 w9 s1 w67 r s3',        # 09 Oct 2013
+# 'vflZ4JlpT' => '15988 s3 r s1 r w28 s1',        # 11 Oct 2013
+# 'vflDgXSDS' => '15988 s3 r s1 r w28 s1',        # 15 Oct 2013
+# 'vflW444Sr' => '15995 r w9 r s1 w51 w27 r s1 r',      # 17 Oct 2013
+# 'vflK7RoTQ' => '15996 w44 r w36 r w45',       # 21 Oct 2013
+# 'vflKOCFq2' => '16 s1 r w41 r w41 s1 w15',        # 23 Oct 2013
+# 'vflcLL31E' => '16 s1 r w41 r w41 s1 w15',        # 28 Oct 2013
+# 'vflz9bT3N' => '16 s1 r w41 r w41 s1 w15',        # 31 Oct 2013
+# 'vfliZsE79' => '16010 r s3 w49 s3 r w58 s2 r s2',     # 05 Nov 2013
+# 'vfljOFtAt' => '16014 r s3 r s1 r w69 r',       # 07 Nov 2013
+# 'vflqSl9GX' => '16023 w32 r s2 w65 w26 w45 w24 w40 s2',   # 14 Nov 2013
+# 'vflFrKymJ' => '16023 w32 r s2 w65 w26 w45 w24 w40 s2',   # 15 Nov 2013
+# 'vflKz4WoM' => '16027 w50 w17 r w7 w65',        # 19 Nov 2013
+# 'vflhdWW8S' => '16030 s2 w55 w10 s3 w57 r w25 w41',     # 21 Nov 2013
+# 'vfl66X2C5' => '16031 r s2 w34 s2 w39',       # 26 Nov 2013
+# 'vflCXG8Sm' => '16031 r s2 w34 s2 w39',       # 02 Dec 2013
+# 'vfl_3Uag6' => '16034 w3 w7 r s2 w27 s2 w42 r',     # 04 Dec 2013
+# 'vflQdXVwM' => '16047 s1 r w66 s2 r w12',       # 10 Dec 2013
+# 'vflCtc3aO' => '16051 s2 r w11 r s3 w28',       # 12 Dec 2013
+# 'vflCt6YZX' => '16051 s2 r w11 r s3 w28',       # 17 Dec 2013
+# 'vflG49soT' => '16057 w32 r s3 r s1 r w19 w24 s3',      # 18 Dec 2013
+# 'vfl4cHApe' => '16059 w25 s1 r s1 w27 w21 s1 w39',      # 06 Jan 2014
+# 'vflwMrwdI' => '16058 w3 r w39 r w51 s1 w36 w14',     # 06 Jan 2014
+# 'vfl4AMHqP' => '16060 r s1 w1 r w43 r s1 r',        # 09 Jan 2014
+# 'vfln8xPyM' => '16080 w36 w14 s1 r s1 w54',       # 10 Jan 2014
+# 'vflVSLmnY' => '16081 s3 w56 w10 r s2 r w28 w35',     # 13 Jan 2014
+# 'vflkLvpg7' => '16084 w4 s3 w53 s2',          # 15 Jan 2014
+# 'vflbxes4n' => '16084 w4 s3 w53 s2',          # 15 Jan 2014
+# 'vflmXMtFI' => '16092 w57 s3 w62 w41 s3 r w60 r',     # 23 Jan 2014
+# 'vflYDqEW1' => '16094 w24 s1 r s2 w31 w4 w11 r',      # 24 Jan 2014
+# 'vflapGX6Q' => '16093 s3 w2 w59 s2 w68 r s3 r s1',      # 28 Jan 2014
+# 'vflLCYwkM' => '16093 s3 w2 w59 s2 w68 r s3 r s1',      # 29 Jan 2014
+# 'vflcY_8N0' => '16100 s2 w36 s1 r w18 r w19 r',     # 30 Jan 2014
+# 'vfl9qWoOL' => '16104 w68 w64 w28 r',         # 03 Feb 2014
+# 'vfle-mVwz' => '16103 s3 w7 r s3 r w14 w59 s3 r',     # 04 Feb 2014
+# 'vfltdb6U3' => '16106 w61 w5 r s2 w69 s2 r',        # 05 Feb 2014
+# 'vflLjFx3B' => '16107 w40 w62 r s2 w21 s3 r w7 s3',     # 10 Feb 2014
+# 'vfliqjKfF' => '16107 w40 w62 r s2 w21 s3 r w7 s3',     # 13 Feb 2014
+# 'ima-vflxBu-5R' => '16107 w40 w62 r s2 w21 s3 r w7 s3',   # 13 Feb 2014
+# 'ima-vflrGwWV9' => '16119 w36 w45 r s2 r',        # 20 Feb 2014
+# 'ima-vflCME3y0' => '16128 w8 s2 r w52',       # 27 Feb 2014
+# 'ima-vfl1LZyZ5' => '16128 w8 s2 r w52',       # 27 Feb 2014
+# 'ima-vfl4_saJa' => '16130 r s1 w19 w9 w57 w38 s3 r s2',   # 01 Mar 2014
+# 'ima-en_US-vflP9269H' => '16129 r w63 w37 s3 r w14 r',    # 06 Mar 2014
+# 'ima-en_US-vflkClbFb' => '16136 s1 w12 w24 s1 w52 w70 s2',    # 07 Mar 2014
+# 'ima-en_US-vflYhChiG' => '16137 w27 r s3',        # 10 Mar 2014
+# 'ima-en_US-vflWnCYSF' => '16142 r s1 r s3 w19 r w35 w61 s2',    # 13 Mar 2014
+# 'en_US-vflbT9-GA' => '16146 w51 w15 s1 w22 s1 w41 r w43 r',   # 17 Mar 2014
+# 'en_US-vflAYBrl7' => '16144 s2 r w39 w43',        # 18 Mar 2014
+# 'en_US-vflS1POwl' => '16145 w48 s2 r s1 w4 w35',      # 19 Mar 2014
+# 'en_US-vflLMtkhg' => '16149 w30 r w30 w39',       # 20 Mar 2014
+# 'en_US-vflbJnZqE' => '16151 w26 s1 w15 w3 w62 w54 w22',   # 24 Mar 2014
+# 'en_US-vflgd5txb' => '16151 w26 s1 w15 w3 w62 w54 w22',   # 25 Mar 2014
+# 'en_US-vflTm330y' => '16151 w26 s1 w15 w3 w62 w54 w22',   # 26 Mar 2014
+# 'en_US-vflnwMARr' => '16156 s3 r w24 s2',       # 27 Mar 2014
+# 'en_US-vflTq0XZu' => '16160 r w7 s3 w28 w52 r',     # 31 Mar 2014
+# 'en_US-vfl8s5-Vs' => '16158 w26 s1 w14 r s3 w8',      # 01 Apr 2014
+# 'en_US-vfl7i9w86' => '16158 w26 s1 w14 r s3 w8',      # 02 Apr 2014
+# 'en_US-vflA-1YdP' => '16158 w26 s1 w14 r s3 w8',      # 03 Apr 2014
+# 'en_US-vflZwcnOf' => '16164 w46 s2 w29 r s2 w51 w20 s1',    # 07 Apr 2014
+# 'en_US-vflFqBlmB' => '16164 w46 s2 w29 r s2 w51 w20 s1',    # 08 Apr 2014
+# 'en_US-vflG0UvOo' => '16164 w46 s2 w29 r s2 w51 w20 s1',    # 09 Apr 2014
+# 'en_US-vflS6PgfC' => '16170 w40 s2 w40 r w56 w26 r s2',   # 10 Apr 2014
+# 'en_US-vfl6Q1v_C' => '16172 w23 r s2 w55 s2',       # 15 Apr 2014
+# 'en_US-vflMYwWq8' => '16177 w51 w32 r s1 r s3',     # 17 Apr 2014
+# 'en_US-vflGC4r8Z' => '16184 w17 w34 w66 s3',        # 24 Apr 2014
+# 'en_US-vflyEvP6v' => '16189 s1 r w26',        # 29 Apr 2014
+# 'en_US-vflm397e5' => '16189 s1 r w26',        # 01 May 2014
+# 'en_US-vfldK8353' => '16192 r s3 w32',        # 03 May 2014
+# 'en_US-vflPTD6yH' => '16196 w59 s1 w66 s3 w10 r w55 w70 s1',    # 06 May 2014
+# 'en_US-vfl7KJl0G' => '16196 w59 s1 w66 s3 w10 r w55 w70 s1',    # 07 May 2014
+# 'en_US-vflhUwbGZ' => '16200 w49 r w60 s2 w61 s3',     # 12 May 2014
+# 'en_US-vflzEDYyE' => '16200 w49 r w60 s2 w61 s3',     # 13 May 2014
+# 'en_US-vflimfEzR' => '16205 r s2 w68 w28',        # 15 May 2014
+# 'en_US-vfl_nbW1R' => '16206 r w8 r s3',       # 20 May 2014
+# 'en_US-vfll7obaF' => '16212 w48 w17 s2',        # 22 May 2014
+# 'en_US-vfluBAJ91' => '16216 w13 s1 w39',        # 27 May 2014
+# 'en_US-vfldOnicU' => '16217 s2 r w7 w21 r',       # 28 May 2014
+# 'en_US-vflbbaSdm' => '16221 w46 r s3 w19 r s2 w15',     # 03 Jun 2014
+# 'en_US-vflIpxel5' => '16225 r w16 w35',       # 04 Jun 2014
+# 'en_US-vfloyxzv5' => '16232 r w30 s3 r s3 r',       # 11 Jun 2014
+# 'en_US-vflmY-xcZ' => '16230 w25 r s1 w49 w52',      # 12 Jun 2014
+# 'en_US-vflMVaJmz' => '16236 w12 s3 w56 r s2 r',     # 17 Jun 2014
+# 'en_US-vflgt97Vg' => '16240 r s1 r',          # 19 Jun 2014
+# 'en_US-vfl19qQQ_' => '16241 s2 w55 s2 r w39 s2 w5 r s3',    # 23 Jun 2014
+# 'en_US-vflws3c7_' => '16243 r s1 w52',        # 24 Jun 2014
+# 'en_US-vflPqsNqq' => '16243 r s1 w52',        # 25 Jun 2014
+# 'en_US-vflycBCEX' => '16247 w12 s1 r s3 w17 s1 w9 r',     # 26 Jun 2014
+# 'en_US-vflhZC-Jn' => '16252 w69 w70 s3',        # 01 Jul 2014
+# 'en_US-vfl9r3Wpv' => '16255 r s3 w57',        # 07 Jul 2014
+# 'en_US-vfl6UPpbU' => '16259 w37 r s1',        # 08 Jul 2014
+# 'en_US-vfl_oxbbV' => '16259 w37 r s1',        # 09 Jul 2014
+# 'en_US-vflXGBaUN' => '16259 w37 r s1',        # 10 Jul 2014
+# 'en_US-vflM1arS5' => '16262 s1 r w42 r s1 w27 r w54',     # 11 Jul 2014
+# 'en_US-vfl0Cbn9e' => '16265 w15 w44 r w24 s3 r w2 w50',   # 14 Jul 2014
+# 'en_US-vfl5aDZwb' => '16265 w15 w44 r w24 s3 r w2 w50',   # 15 Jul 2014
+# 'en_US-vflqZIm5b' => '16268 w1 w32 s1 r s3 r s3 r',     # 17 Jul 2014
+# 'en_US-vflBb0OQx' => '16272 w53 r w9 s2 r s1',      # 22 Jul 2014
 # 'en_US-vflCGk6yw/html5player' => '16275 s2 w28 w44 w26 w40 w64 r s1', # 24 Jul 2014
-# 'en_US-vflNUsYw0/html5player' => '16280 r s3 w7',		  # 30 Jul 2014
+# 'en_US-vflNUsYw0/html5player' => '16280 r s3 w7',     # 30 Jul 2014
 # 'en_US-vflId8cpZ/html5player' => '16282 w30 w21 w26 s1 r s1 w30 w11 w20', # 31 Jul 2014
 # 'en_US-vflEyBLiy/html5player' => '16283 w44 r w15 s2 w40 r s1',  # 01 Aug 2014
 # 'en_US-vflHkCS5P/html5player' => '16287 s2 r s3 r w41 s1 r s1 r', # 05 Aug 2014
 # 'en_US-vflArxUZc/html5player' => '16289 r w12 r s3 w14 w61 r',  # 07 Aug 2014
-# 'en_US-vflCsMU2l/html5player' => '16292 r s2 r w64 s1 r s3',	  # 11 Aug 2014
+# 'en_US-vflCsMU2l/html5player' => '16292 r s2 r w64 s1 r s3',    # 11 Aug 2014
 # 'en_US-vflY5yrKt/html5player' => '16294 w8 r s2 w37 s1 w21 s3', # 12 Aug 2014
 # 'en_US-vfl4b4S6W/html5player' => '16295 w40 s1 r w40 s3 r w47 r', # 13 Aug 2014
-# 'en_US-vflLKRtyE/html5player' => '16298 w5 r s1 r s2 r',	  # 18 Aug 2014
+# 'en_US-vflLKRtyE/html5player' => '16298 w5 r s1 r s2 r',    # 18 Aug 2014
 # 'en_US-vflrSlC04/html5player' => '16300 w28 w58 w19 r s1 r s1 r', # 19 Aug 2014
 # 'en_US-vflC7g_iA/html5player' => '16300 w28 w58 w19 r s1 r s1 r', # 20 Aug 2014
 # 'en_US-vfll1XmaE/html5player' => '16303 r w9 w23 w29 w36 s2 r', # 21 Aug 2014
-# 'en_US-vflWRK4zF/html5player' => '16307 r w63 r s3',		  # 26 Aug 2014
+# 'en_US-vflWRK4zF/html5player' => '16307 r w63 r s3',      # 26 Aug 2014
 # 'en_US-vflQSzMIW/html5player' => '16309 r s1 w40 w70 s2 w28 s1', # 27 Aug 2014
-# 'en_US-vfltYLx8B/html5player' => '16310 s3 w19 w24',		  # 29 Aug 2014
+# 'en_US-vfltYLx8B/html5player' => '16310 s3 w19 w24',      # 29 Aug 2014
 # 'en_US-vflWnljfv/html5player' => '16311 s2 w60 s3 w42 r w40 s2 w68 w20', # 02 Sep 2014
 # 'en_US-vflDJ-wUY/html5player' => '16316 s2 w18 s2 w68 w15 s1 w45 s1 r', # 04 Sep 2014
 # 'en_US-vfllxLx6Z/html5player' => '16309 r s1 w40 w70 s2 w28 s1', # 04 Sep 2014
 # 'en_US-vflI3QYI2/html5player' => '16318 s3 w22 r s3 w19 s1 r',   # 08 Sep 2014
-# 'en_US-vfl-ZO7j_/html5player' => '16322 s3 w21 s1',		   # 09 Sep 2014
-# 'en_US-vflWGRWFI/html5player' => '16324 r w27 r s1 r',	   # 12 Sep 2014
+# 'en_US-vfl-ZO7j_/html5player' => '16322 s3 w21 s1',      # 09 Sep 2014
+# 'en_US-vflWGRWFI/html5player' => '16324 r w27 r s1 r',     # 12 Sep 2014
 # 'en_US-vflJkTW89/html5player' => '16328 w12 s1 w67 r w39 w65 s3 r s1', # 15 Sep 2014
 # 'en_US-vflB8RV2U/html5player' => '16329 r w26 r w28 w38 r s3',   # 16 Sep 2014
 # 'en_US-vflBFNwmh/html5player' => '16329 r w26 r w28 w38 r s3',   # 17 Sep 2014
 # 'en_US-vflE7vgXe/html5player' => '16331 w46 w22 r w33 r s3 w18 r s3', # 18 Sep 2014
 # 'en_US-vflx8EenD/html5player' => '16334 w8 s3 w45 w46 s2 w29 w25 w56 w2', # 23 Sep 2014
-# 'en_US-vflfgwjRj/html5player' => '16336 r s2 w56 r s3',	   # 24 Sep 2014
+# 'en_US-vflfgwjRj/html5player' => '16336 r s2 w56 r s3',    # 24 Sep 2014
 # 'en_US-vfl15y_l6/html5player' => '16334 w8 s3 w45 w46 s2 w29 w25 w56 w2', # 25 Sep 2014
-# 'en_US-vflYqHPcx/html5player' => '16341 s3 r w1 r',		   # 30 Sep 2014
-# 'en_US-vflcoeQIS/html5player' => '16344 s3 r w64 r s3 r w68',	   # 01 Oct 2014
-# 'en_US-vflz7mN60/html5player' => '16345 s2 w16 w39',		   # 02 Oct 2014
-# 'en_US-vfl4mDBLZ/html5player' => '16348 r w54 r s2 w49',	   # 06 Oct 2014
-# 'en_US-vflKzH-7N/html5player' => '16348 r w54 r s2 w49',	   # 08 Oct 2014
-# 'en_US-vflgoB_xN/html5player' => '16345 s2 w16 w39',		   # 09 Oct 2014
+# 'en_US-vflYqHPcx/html5player' => '16341 s3 r w1 r',      # 30 Sep 2014
+# 'en_US-vflcoeQIS/html5player' => '16344 s3 r w64 r s3 r w68',    # 01 Oct 2014
+# 'en_US-vflz7mN60/html5player' => '16345 s2 w16 w39',       # 02 Oct 2014
+# 'en_US-vfl4mDBLZ/html5player' => '16348 r w54 r s2 w49',     # 06 Oct 2014
+# 'en_US-vflKzH-7N/html5player' => '16348 r w54 r s2 w49',     # 08 Oct 2014
+# 'en_US-vflgoB_xN/html5player' => '16345 s2 w16 w39',       # 09 Oct 2014
 # 'en_US-vflPyRPNk/html5player' => '16353 r w34 w9 w56 r s3 r w30', # 12 Oct 2014
-# 'en_US-vflG0qgr5/html5player' => '16345 s2 w16 w39',		   # 14 Oct 2014
+# 'en_US-vflG0qgr5/html5player' => '16345 s2 w16 w39',       # 14 Oct 2014
 # 'en_US-vflzDhHvc/html5player' => '16358 w26 s1 r w8 w24 w18 r s2 r', # 15 Oct 2014
-# 'en_US-vflbeC7Ip/html5player' => '16359 r w21 r s2 r',	   # 16 Oct 2014
-# 'en_US-vflBaDm_Z/html5player' => '16363 s3 w5 s1 w20 r',	   # 20 Oct 2014
-# 'en_US-vflr38Js6/html5player' => '16364 w43 s1 r',		   # 21 Oct 2014
-# 'en_US-vflg1j_O9/html5player' => '16365 s2 r s3 r s3 r w2',	   # 22 Oct 2014
-# 'en_US-vflPOfApl/html5player' => '16371 s2 w38 r s3 r',	   # 28 Oct 2014
-# 'en_US-vflMSJ2iW/html5player' => '16366 s2 r w4 w22 s2 r s2',	   # 29 Oct 2014
+# 'en_US-vflbeC7Ip/html5player' => '16359 r w21 r s2 r',     # 16 Oct 2014
+# 'en_US-vflBaDm_Z/html5player' => '16363 s3 w5 s1 w20 r',     # 20 Oct 2014
+# 'en_US-vflr38Js6/html5player' => '16364 w43 s1 r',       # 21 Oct 2014
+# 'en_US-vflg1j_O9/html5player' => '16365 s2 r s3 r s3 r w2',    # 22 Oct 2014
+# 'en_US-vflPOfApl/html5player' => '16371 s2 w38 r s3 r',    # 28 Oct 2014
+# 'en_US-vflMSJ2iW/html5player' => '16366 s2 r w4 w22 s2 r s2',    # 29 Oct 2014
 # 'en_US-vflckDNUK/html5player' => '16373 s3 r w66 r s3 w1 w12 r', # 30 Oct 2014
-# 'en_US-vflKCJBPS/html5player' => '16374 w15 w2 s1 r s3 r',	   # 31 Oct 2014
+# 'en_US-vflKCJBPS/html5player' => '16374 w15 w2 s1 r s3 r',     # 31 Oct 2014
 # 'en_US-vflcF0gLP/html5player' => '16375 s3 w10 s1 r w28 s1 w40 w64 r', # 04 Nov 2014
-# 'en_US-vflpRHqKc/html5player' => '16377 w39 r w48 r',		   # 05 Nov 2014
+# 'en_US-vflpRHqKc/html5player' => '16377 w39 r w48 r',      # 05 Nov 2014
 # 'en_US-vflbcuqSZ/html5player' => '16379 r s1 w27 s2 w5 w7 w51 r', # 06 Nov 2014
 # 'en_US-vflHf2uUU/html5player' => '16379 r s1 w27 s2 w5 w7 w51 r', # 11 Nov 2014
 # 'en_US-vfln6g5Eq/html5player' => '16385 w1 r s3 r s2 w10 s3 r',  # 12 Nov 2014
-# 'en_US-vflM7pYrM/html5player' => '16387 r s2 r w3 r w11 r',	   # 15 Nov 2014
-# 'en_US-vflP2rJ1-/html5player' => '16387 r s2 r w3 r w11 r',	   # 18 Nov 2014
+# 'en_US-vflM7pYrM/html5player' => '16387 r s2 r w3 r w11 r',    # 15 Nov 2014
+# 'en_US-vflP2rJ1-/html5player' => '16387 r s2 r w3 r w11 r',    # 18 Nov 2014
 # 'en_US-vflXs0FWW/html5player' => '16392 w63 s1 r w46 s2 r s3',   # 20 Nov 2014
 # 'en_US-vflEhuJxd/html5player' => '16392 w63 s1 r w46 s2 r s3',   # 21 Nov 2014
-# 'en_US-vflp3wlqE/html5player' => '16396 w22 s3 r',		   # 24 Nov 2014
-# 'en_US-vfl5_7-l5/html5player' => '16396 w22 s3 r',		   # 25 Nov 2014
-# 'en_US-vfljnKokH/html5player' => '16400 s3 w15 s2 w30 w11',	   # 26 Nov 2014
+# 'en_US-vflp3wlqE/html5player' => '16396 w22 s3 r',       # 24 Nov 2014
+# 'en_US-vfl5_7-l5/html5player' => '16396 w22 s3 r',       # 25 Nov 2014
+# 'en_US-vfljnKokH/html5player' => '16400 s3 w15 s2 w30 w11',    # 26 Nov 2014
 # 'en_US-vflIlILAX/html5player' => '16407 r w7 w19 w38 s3 w41 s1 r w1', # 04 Dec 2014
 # 'en_US-vflEegqdq/html5player' => '16407 r w7 w19 w38 s3 w41 s1 r w1', # 10 Dec 2014
 # 'en_US-vflkOb-do/html5player' => '16407 r w7 w19 w38 s3 w41 s1 r w1', # 11 Dec 2014
-# 'en_US-vfllt8pl6/html5player' => '16419 r w17 w33 w53',	   # 16 Dec 2014
+# 'en_US-vfllt8pl6/html5player' => '16419 r w17 w33 w53',    # 16 Dec 2014
 # 'en_US-vflsXGZP2/html5player' => '16420 s3 w38 s1 w16 r w20 w69 s2 w15', # 18 Dec 2014
-# 'en_US-vflw4H1P-/html5player' => '16427 w8 r s1',		   # 23 Dec 2014
-# 'en_US-vflmgJnmS/html5player' => '16421 s3 w20 r w34 r s1 r',	   # 06 Jan 2015
+# 'en_US-vflw4H1P-/html5player' => '16427 w8 r s1',      # 23 Dec 2014
+# 'en_US-vflmgJnmS/html5player' => '16421 s3 w20 r w34 r s1 r',    # 06 Jan 2015
 # 'en_US-vfl86Quee/html5player' => '16450 s3 r w25 w29 r w17 s2 r', # 15 Jan 2015
 # 'en_US-vfl19kCnd/html5player' => '16444 r w29 s1 r s1 r w4 w28', # 17 Jan 2015
-# 'en_US-vflbHLA_P/html5player' => '16451 r w20 r w20 s2 r',	   # 20 Jan 2015
-# 'en_US-vfl_ZlzZL/html5player' => '16455 w61 r s1 w31 w36 s1',	   # 22 Jan 2015
-# 'en_US-vflbeV8LH/html5player' => '16455 w61 r s1 w31 w36 s1',	   # 26 Jan 2015
-# 'en_US-vflhJatih/html5player' => '16462 s2 w44 r s3 w17 s1',	   # 28 Jan 2015
-# 'en_US-vflvmwLwg/html5player' => '16462 s2 w44 r s3 w17 s1',	   # 29 Jan 2015
-# 'en_US-vflljBsG4/html5player' => '16462 s2 w44 r s3 w17 s1',	   # 02 Feb 2015
-# 'en_US-vflT5ziDW/html5player' => '16462 s2 w44 r s3 w17 s1',	   # 03 Feb 2015
+# 'en_US-vflbHLA_P/html5player' => '16451 r w20 r w20 s2 r',     # 20 Jan 2015
+# 'en_US-vfl_ZlzZL/html5player' => '16455 w61 r s1 w31 w36 s1',    # 22 Jan 2015
+# 'en_US-vflbeV8LH/html5player' => '16455 w61 r s1 w31 w36 s1',    # 26 Jan 2015
+# 'en_US-vflhJatih/html5player' => '16462 s2 w44 r s3 w17 s1',     # 28 Jan 2015
+# 'en_US-vflvmwLwg/html5player' => '16462 s2 w44 r s3 w17 s1',     # 29 Jan 2015
+# 'en_US-vflljBsG4/html5player' => '16462 s2 w44 r s3 w17 s1',     # 02 Feb 2015
+# 'en_US-vflT5ziDW/html5player' => '16462 s2 w44 r s3 w17 s1',     # 03 Feb 2015
 # 'en_US-vflwImypH/html5player' => '16471 s3 r w23 s2 w29 r w44',  # 05 Feb 2015
 # 'en_US-vflQkSGin/html5player' => '16475 w70 r w66 s1 w70 w26 r w48', # 10 Feb 2015
 # 'en_US-vflqnkATr/html5player' => '16475 w70 r w66 s1 w70 w26 r w48', # 11 Feb 2015
@@ -1985,12 +1985,12 @@ my %ciphers = (
 # 'en_US-vflF2Mg88/html5player' => '16475 w70 r w66 s1 w70 w26 r w48', # 19 Feb 2015
 # 'en_US-vflQTSOsS/html5player' => '16489 s3 r w23 s1 w19 w43 w36',    # 24 Feb 2015
 # 'en_US-vflbaqfRh/html5player' => '16489 s3 r w23 s1 w19 w43 w36',    # 25 Feb 2015
-# 'en_US-vflcL_htG/html5player' => '16491 w20 s3 w37 r',	  # 04 Mar 2015
+# 'en_US-vflcL_htG/html5player' => '16491 w20 s3 w37 r',    # 04 Mar 2015
 # 'en_US-vflTbHYa9/html5player' => '16498 s3 w44 s1 r s1 r s3 r s3', # 04 Mar 2015
-# 'en_US-vflT9SJ6t/html5player' => '16497 w66 r s3 w60',	  # 05 Mar 2015
-# 'en_US-vfl6xsolJ/html5player' => '16503 s1 w4 s1 w39 s3 r',	  # 10 Mar 2015
-# 'en_US-vflA6e-lH/html5player' => '16503 s1 w4 s1 w39 s3 r',	  # 13 Mar 2015
-# 'en_US-vflu7AB7p/html5player' => '16503 s1 w4 s1 w39 s3 r',	  # 16 Mar 2015
+# 'en_US-vflT9SJ6t/html5player' => '16497 w66 r s3 w60',    # 05 Mar 2015
+# 'en_US-vfl6xsolJ/html5player' => '16503 s1 w4 s1 w39 s3 r',   # 10 Mar 2015
+# 'en_US-vflA6e-lH/html5player' => '16503 s1 w4 s1 w39 s3 r',   # 13 Mar 2015
+# 'en_US-vflu7AB7p/html5player' => '16503 s1 w4 s1 w39 s3 r',   # 16 Mar 2015
 # 'en_US-vflQb7e_A/html5player' => '16510 w19 w35 r s2 r s1 w64 s2 w53', # 18 Mar 2015
 # 'en_US-vflicH9X6/html5player' => '16510 w19 w35 r s2 r s1 w64 s2 w53', # 20 Mar 2015
 # 'en_US-vflvDDxpc/html5player' => '16510 w19 w35 r s2 r s1 w64 s2 w53', # 23 Mar 2015
@@ -3026,6 +3026,26 @@ my %ciphers = (
   '9c1a7c38/player_ias.vflset/en_US/base' => '19051 w52 w19 w37 r w6',# 28 Feb 2022
   '0abde7de/player_ias.vflset/en_US/base' => '19054 r s3 r s1 r', # 03 Mar 2022
   '2fd2ad45/player_ias.vflset/en_US/base' => '19058 r s2 r w30 s1',# 07 Mar 2022
+  '6d3a4914/player_ias.vflset/en_US/base' => '19060 s2 w22 w53 w26 r w48 s1 r w3',# 09 Mar 2022
+  '87b9576a/player_ias.vflset/en_US/base' => '19061 s1 w34 r',    # 10 Mar 2022
+  'bd67d609/player_ias.vflset/en_US/base' => '19065 r s3 w54 s1 r',# 14 Mar 2022
+  '006430cb/player_ias.vflset/en_US/base' => '19067 r s1 w4 s3 r s2',# 16 Mar 2022
+  '577098c0/player_ias.vflset/en_US/base' => '19068 w65 w57 r s1 r',# 17 Mar 2022
+  '293baa5d/player_ias.vflset/en_US/base' => '19072 s1 r s3 w66 w9',# 21 Mar 2022
+  '68423b67/player_ias.vflset/en_US/base' => '19074 w7 r w24 s3', # 23 Mar 2022
+  'c6736352/player_ias.vflset/en_US/base' => '19075 s2 r s2 r',   # 24 Mar 2022
+  '3a393eba/player_ias.vflset/en_US/base' => '19079 r w31 s2 w27 s2 w70 r s2 r',# 28 Mar 2022
+  '1d26561d/player_ias.vflset/en_US/base' => '19081 s2 r w40 s1', # 30 Mar 2022
+  '449ea0a5/player_ias.vflset/en_US/base' => '19082 s1 w31 s1 r s2 w19 s1',# 31 Mar 2022
+  '9e50a907/player_ias.vflset/en_US/base' => '19086 w34 s2 w28 r w58',# 04 Apr 2022
+  '689586e2/player_ias.vflset/en_US/base' => '19088 r s3 w20 s1', # 06 Apr 2022
+  '3b5d5649/player_ias.vflset/en_US/base' => '19089 r s3 w17 s3', # 07 Apr 2022
+  '1e29bfc0/player_ias.vflset/en_US/base' => '19093 w43 s3 r w47 s2 w57',# 11 Apr 2022
+  '0c665041/player_ias.vflset/en_US/base' => '19095 r w38 r w46 s1 r w64 s1 r',# 13 Apr 2022
+  'fae06c11/player_ias.vflset/en_US/base' => '19096 w64 s1 r',    # 14 Apr 2022
+  '19eb72e4/player_ias.vflset/en_US/base' => '19100 w17 w18 w3 r w69 r w23',# 18 Apr 2022
+  'ae36df5c/player_ias.vflset/en_US/base' => '19102 r s1 r w65 r s3 r',# 20 Apr 2022
+  '534c466c/player_ias.vflset/en_US/base' => '19103 s2 w34 s2 w35 r',# 21 Apr 2022
 );
 
 
@@ -3120,7 +3140,7 @@ sub guess_cipher($;$$) {
   my $id = '-';
 
   if (! $cipher_id) {
-    ($http, $head, $body) = get_url ($url);		# Get home page
+    ($http, $head, $body) = get_url ($url);   # Get home page
     check_http_status ('-', $url, $http, 2);
 
     my @vids = ();
@@ -3136,7 +3156,7 @@ sub guess_cipher($;$$) {
     my $id = @vids[int(@vids / 2)];
     $url .= "/watch\?v=$id";
 
-    ($http, $head, $body) = get_url ($url);	# Get random video's info
+    ($http, $head, $body) = get_url ($url); # Get random video's info
     check_http_status ($id, $url, $http, 2);
 
     ($cipher_id) = page_cipher_base_url ($url, $body);
@@ -3158,8 +3178,8 @@ sub guess_cipher($;$$) {
   my ($date) = ($head =~ m/^Last-Modified:\s+(.*)$/mi);
   $date =~ s/^[A-Z][a-z][a-z], (\d\d? [A-Z][a-z][a-z] \d{4}).*$/$1/s;
 
-  my $v  = '[\$a-zA-Z][a-zA-Z\d]*';	# JS variable, 1+ characters
-  my $v2 = '[\$a-zA-Z][a-zA-Z\d]?';	# JS variable, 2 characters
+  my $v  = '[\$a-zA-Z][a-zA-Z\d]*'; # JS variable, 1+ characters
+  my $v2 = '[\$a-zA-Z][a-zA-Z\d]?'; # JS variable, 2 characters
 
   $v  = "$v(?:\.$v)?";   # Also allow "a.b" where "a" would be used as a var.
   $v2 = "$v2(?:\.$v2)?";
@@ -3448,14 +3468,14 @@ sub youtube_parse_urlmap($$$;$) {
 
   my $cipher_printed_p = 0;
 
-  if ($urlmap =~ m/^\{"/s) {			# Ugh, sometimes it is JSON
+  if ($urlmap =~ m/^\{"/s) {      # Ugh, sometimes it is JSON
     $urlmap =~ s/^\{//s;
 
     # FFS, I don't want to write a whole JSON parser!
     # codecs=\"abc, def\"  ->  %2C
     $urlmap =~ s/(\\".*?\\")/{ my $s = $1; $s =~ s@,@%2C@gs; $s; }/gsexi;
     $urlmap =~ s/"( [^\"\[\],]*? )" :
-                  ( [^,]+ ) [,\}]* / {		# "a":x, => a=x&
+                  ( [^,]+ ) [,\}]* / {    # "a":x, => a=x&
                  "$1=" . url_quote($2) . "&";
                 }/gsexi;
     $urlmap =~ s/&\{/,/gs;
@@ -3475,9 +3495,9 @@ sub youtube_parse_urlmap($$$;$) {
       ($k, $v) = m/^(.*?)\|(.*)$/s;
     } elsif ($mapelt =~ m/^[a-z][a-z\d_]*=/s) {
 
-      ($sig)  = ($mapelt =~ m/\bsig=([^&]+)/s);	# sig= when un-ciphered.
-      ($sig2) = ($mapelt =~ m/\bs=([^&]+)/s);	# s= when enciphered.
-      ($sig3) = ($mapelt =~ m@/s/([^/?&]+)@s);	# /s/XXX/ in DASH.
+      ($sig)  = ($mapelt =~ m/\bsig=([^&]+)/s); # sig= when un-ciphered.
+      ($sig2) = ($mapelt =~ m/\bs=([^&]+)/s); # s= when enciphered.
+      ($sig3) = ($mapelt =~ m@/s/([^/?&]+)@s);  # /s/XXX/ in DASH.
 
       ($k) = ($mapelt =~ m/\bitag=(\d+)/s);
       ($v) = ($mapelt =~ m/\burl=([^&]+)/s);
@@ -3537,11 +3557,11 @@ sub youtube_parse_urlmap($$$;$) {
     # actually VP9 / WebM rather than H.264. Those must be transcoded,
     # not copied, to play on H.264-only devices.
     #
-    if ($e =~ m@\b(vp9)\b@si) {		# video/mp4; codecs="vp9"
+    if ($e =~ m@\b(vp9)\b@si) {   # video/mp4; codecs="vp9"
       $ct = 'video/webm';
-    } elsif ($e =~ m@(av1|av01)@si) {	# video/mp4; codecs="av01.0.16M.08"
+    } elsif ($e =~ m@(av1|av01)@si) { # video/mp4; codecs="av01.0.16M.08"
       $ct = 'video/av1';
-    } elsif ($e =~ m@\b(opus)\b@si) {	# audio/mp4; codecs="opus"
+    } elsif ($e =~ m@\b(opus)\b@si) { # audio/mp4; codecs="opus"
       $ct = 'audio/opus';
     }
 
@@ -4073,7 +4093,7 @@ sub load_youtube_formats_video_info($$$) {
       my $err2 = (check_http_status ($id, $url, $http, 0) ? undef : $http);
       $err = $err2 unless $err;
 
-      my $body2 = $body;		# FFS
+      my $body2 = $body;    # FFS
       $body2 =~ s/%5C/\\/gs;
       $body2 =~ s/\\u0026/&/gs;
       $body2 =~ s/%3D/=/gs;
@@ -4475,7 +4495,7 @@ sub load_tumblr_formats($$$) {
     }
 
     my ($img)   = ($body =~ m@<meta \s+ property="og:image" \s+
-			      content="([^<>]*?)"@six);
+            content="([^<>]*?)"@six);
     error ("no title: $url\n$body") unless $title;
     error ("no og:image: $url") unless $img;
     $img =~ s@_[^/._]+\.[a-z]+$@_480.mp4@si;
@@ -4573,18 +4593,18 @@ sub load_instagram_formats($$$) {
   check_http_status ($id, $url, $http, 1);
 
   my ($title) = ($body =~ m@<meta \s+ property="og:title" \s+
-			   content="([^<>]*?)"@six);
+         content="([^<>]*?)"@six);
   my ($src)   = ($body =~ m@<meta \s+ property="og:video:secure_url" \s+
-			   content="([^<>]*?)"@six);
+         content="([^<>]*?)"@six);
   my ($w)     = ($body =~ m@<meta \s+ property="og:video:width" \s+
-			   content="([^<>]*?)"@six);
+         content="([^<>]*?)"@six);
   my ($h)     = ($body =~ m@<meta \s+ property="og:video:height" \s+
-			   content="([^<>]*?)"@six);
+         content="([^<>]*?)"@six);
   my ($ct)    = ($body =~ m@<meta \s+ property="og:video:type" \s+
-			   content="([^<>]*n?)"@six);
+         content="([^<>]*n?)"@six);
   my ($year)  = ($body =~ m@\bdatetime="(\d{4})-@six);
   my ($thumb) = ($body =~ m@<meta \\s+ property="og:image"     \s+
-			   content="([^<>]*n?)"@six);
+         content="([^<>]*n?)"@six);
 
   error ("$id: no video in $url")
     unless ($src && $w && $h && $ct && $title);
@@ -4625,7 +4645,7 @@ sub load_twitter_formats($$$) {
   my ($http, $head, $body) = get_url ($url);
   check_http_status ($id, $url, $http, 1);
   my ($title) = ($body =~ m@<meta \s+ property="og:title" \s+
-			   content="([^<>]*?)"@six);
+         content="([^<>]*?)"@six);
 
   $url = "https://twitter.com/i/videos/tweet/$id";
   ($http, $head, $body) = get_url ($url);
@@ -4942,6 +4962,7 @@ sub pick_download_format($$$$$$) {
    317 => { v => 'webm', w =>  854, h =>  480, a => undef               },
    318 => { v => 'webm', w =>  854, h =>  480, a => undef               },
    327 => { v => undef,                        a => 'm4a', abr => 128, c=>5.1 },
+   328 => { v => undef,                        a => 'ec3', abr => 384, c=>5.1 },
    330 => { v => 'webm', w => 256,  h =>  144, a => undef               },
    331 => { v => 'webm', w => 426,  h =>  240, a => undef               },
    332 => { v => 'webm', w => 640,  h =>  360, a => undef               },
@@ -4959,6 +4980,7 @@ sub pick_download_format($$$$$$) {
    358 => { v => 'webm', w => 1280, h =>  720, a => undef               },
    359 => { v => 'webm', w => 1920, h => 1080, a => undef               },
    360 => { v => 'webm', w => 1920, h => 1080, a => undef               },
+   380 => { v => undef,                        a => 'ac3', abr => 384, c=>5.1 },
    394 => { v => 'av1',  w =>  256, h =>  144, a => undef               },
    395 => { v => 'av1',  w =>  426, h =>  240, a => undef               },
    396 => { v => 'av1',  w =>  640, h =>  360, a => undef               },
@@ -5205,25 +5227,25 @@ sub pick_download_format($$$$$$) {
 
       my $aa = $A->{h} || 0;
       my $bb = $B->{h} || 0;
-      return ($bb - $aa) unless ($aa == $bb);	# Prefer taller video.
+      return ($bb - $aa) unless ($aa == $bb); # Prefer taller video.
 
-      $aa = (($A->{v} || '') eq 'mp4');		# Prefer MP4 over WebM / AV1.
+      $aa = (($A->{v} || '') eq 'mp4');   # Prefer MP4 over WebM / AV1.
       $bb = (($B->{v} || '') eq 'mp4');
       return ($bb - $aa) unless ($aa == $bb);
 
-      $aa = $A->{c} || 0;			# Prefer 5.1 over stereo.
+      $aa = $A->{c} || 0;     # Prefer 5.1 over stereo.
       $bb = $B->{c} || 0;
       return ($bb - $aa) unless ($aa == $bb);
 
-      $aa = $A->{abr} || 0;			# Prefer higher audio rate.
+      $aa = $A->{abr} || 0;     # Prefer higher audio rate.
       $bb = $B->{abr} || 0;
       return ($bb - $aa) unless ($aa == $bb);
 
-      $aa = (($A->{a} || '') eq 'aac');		# Prefer AAC over MP3.
+      $aa = (($A->{a} || '') eq 'aac');   # Prefer AAC over MP3.
       $bb = (($B->{a} || '') eq 'aac');
       return ($bb - $aa) unless ($aa == $bb);
 
-      $aa = (($A->{a} || '') eq 'mp3');		# Prefer MP3 over Vorbis.
+      $aa = (($A->{a} || '') eq 'mp3');   # Prefer MP3 over Vorbis.
       $bb = (($B->{a} || '') eq 'mp3');
       return ($bb - $aa) unless ($aa == $bb);
 
@@ -5416,13 +5438,13 @@ sub munge_title($) {
     # expand it to the corresponding unicode character.
     #
     # Test cases:
-    #   https://www.vimeo.com/82503761			é  as \u00e9\u00a0
-    #   https://www.vimeo.com/123397581			û– as \u00fb\u2013
-    #   https://www.youtube.com/watch?v=z9ScJBmEdQw	ä  as UTF8 (2 bytes)
-    #   https://www.youtube.com/watch?v=eAXmgId3NTQ	ø  as UTF8 (2 bytes)
-    #   https://www.youtube.com/watch?v=FszEaxrHGTs	∆  as UTF8 (3 bytes)
-    #   https://www.youtube.com/watch?v=4ViwSeuWVfE	JP as UTF8 (3 bytes)
-    #   https://vimeo.com/118261420			Snowman emoji, etc.
+    #   https://www.vimeo.com/82503761      é  as \u00e9\u00a0
+    #   https://www.vimeo.com/123397581     û– as \u00fb\u2013
+    #   https://www.youtube.com/watch?v=z9ScJBmEdQw ä  as UTF8 (2 bytes)
+    #   https://www.youtube.com/watch?v=eAXmgId3NTQ ø  as UTF8 (2 bytes)
+    #   https://www.youtube.com/watch?v=FszEaxrHGTs ∆  as UTF8 (3 bytes)
+    #   https://www.youtube.com/watch?v=4ViwSeuWVfE JP as UTF8 (3 bytes)
+    #   https://vimeo.com/118261420     Snowman emoji, etc.
     #
 
     # If this is still a Latin1 string, upgrade it to wide chars.
@@ -5439,11 +5461,11 @@ sub munge_title($) {
   $title =~ s/ \\[ux] \{ ([a-z0-9]+)   \} / unihex($1) /gsexi;  # \u{XXXXXX}
   $title =~ s/ \\[ux]   ([a-z0-9]{4})     / unihex($1) /gsexi;  # \uXXXX
 
-  $title =~ s/[\x{2012}-\x{2013}]+/-/gs;	# various dashes
-  $title =~ s/[\x{2014}-\x{2015}]+/--/gs;	# various long dashes
-  $title =~ s/\x{2018}+/\`/gs;			# backquote
-  $title =~ s/\x{2019}+/\'/gs;			# quote
-  $title =~ s/[\x{201c}\x{201d}]+/\"/gs;	# ldquo, rdquo
+  $title =~ s/[\x{2012}-\x{2013}]+/-/gs;  # various dashes
+  $title =~ s/[\x{2014}-\x{2015}]+/--/gs; # various long dashes
+  $title =~ s/\x{2018}+/\`/gs;      # backquote
+  $title =~ s/\x{2019}+/\'/gs;      # quote
+  $title =~ s/[\x{201c}\x{201d}]+/\"/gs;  # ldquo, rdquo
   $title =~ s/\`/\'/gs;
   $title =~ s/\s*(\|\s*)+/ - /gs;   # | to -
 
@@ -5478,7 +5500,7 @@ sub munge_title($) {
                      fan \s* made |
                      ( FULL|COMPLETE ) \s+ ( set|concert|album ) |
                      FREE \s+ ( download|D\s*[[:punct:]-]\s*L ) |
-		     Live \s+ \@ \s .*
+         Live \s+ \@ \s .*
                    )
                    \b \s* )+ //gsix;
 
@@ -5544,7 +5566,7 @@ sub munge_title($) {
 
   my ($artist, $track, $junk) = (undef, undef, '');
 
-  ($title, $junk) = ($1, $2)			# TITLE (JUNK)
+  ($title, $junk) = ($1, $2)      # TITLE (JUNK)
     if ($title =~ m/^(.*)\s+$obrack+ (.*) $cbrack+ $/six);
 
   ($title, $junk) = ($1, "$3 $junk")  # TITLE (Dir. by D) .*
@@ -5552,12 +5574,12 @@ sub munge_title($) {
                       ($obrack+|\s)\s* ((Dir|Prod)\. .*)$/six);
 
 
-  ($track, $artist) = ($1, $2)			# TRACK performed by ARTIST
-    if (!$artist &&				# TRACK by ARTIST
+  ($track, $artist) = ($1, $2)      # TRACK performed by ARTIST
+    if (!$artist &&       # TRACK by ARTIST
         $title =~ m/^ ( .+? ) \b
                       (?: performed \s+ )? by \b ( .+ )$/six);
 
-  ($artist, $track) = ($1, $2)			# ARTIST performing TRACK
+  ($artist, $track) = ($1, $2)      # ARTIST performing TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? ) \b (?: plays | playing | performs? |
                                      performing )
@@ -5575,42 +5597,42 @@ sub munge_title($) {
                       (?: interviews | interviewing )
                       \b ( .+ )$/six);
 
-  ($track, $artist) = ($1, $2)				# "TRACK" ARTIST
+  ($track, $artist) = ($1, $2)        # "TRACK" ARTIST
     if (!$artist &&
         $title =~ m/^ \" ( .+? ) \" [,\s]+ ( .+ )$/six);
 
-  ($artist, $track, $junk) = ($1, $2, "$3 $junk")	# ARTIST "TRACK" JUNK
+  ($artist, $track, $junk) = ($1, $2, "$3 $junk") # ARTIST "TRACK" JUNK
     if (!$artist &&
         $title =~ m/^ ( .+? ) [,\s]+ \" ( .+ ) \" ( .*? ) $/six);
 
 
-  ($track, $artist) = ($1, $2)				# 'TRACK' ARTIST
+  ($track, $artist) = ($1, $2)        # 'TRACK' ARTIST
     if (!$artist &&
         $title =~ m/^ \' ( .+? ) \' [,\s]+ ( .+ )$/six);
 
-  ($artist, $track, $junk) = ($1, $2, "$3 $junk")	# ARTIST 'TRACK' JUNK
+  ($artist, $track, $junk) = ($1, $2, "$3 $junk") # ARTIST 'TRACK' JUNK
     if (!$artist &&
         $title =~ m/^ ( .+? ) [,\s]+ \' ( .+ ) \' ( .*? ) $/six);
 
 
-  ($artist, $track) = ($1, $2)				# ARTIST -- TRACK
+  ($artist, $track) = ($1, $2)        # ARTIST -- TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? ) \s* --+ \s* ( .+ )$/six);
 
-  ($artist, $track) = ($1, $2)				# ARTIST: TRACK
+  ($artist, $track) = ($1, $2)        # ARTIST: TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? ) \s* :+  \s* ( .+ )$/six);
 
 
-  ($artist, $track) = ($1, $2)				# ARTIST-- TRACK
+  ($artist, $track) = ($1, $2)        # ARTIST-- TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? )     --+ \s* ( .+ )$/six);
 
-  ($artist, $track) = ($1, $2)				# ARTIST - TRACK
+  ($artist, $track) = ($1, $2)        # ARTIST - TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? ) \s+ -   \s+ ( .+ )$/six);
 
-  ($artist, $track) = ($1, $2)				# ARTIST- TRACK
+  ($artist, $track) = ($1, $2)        # ARTIST- TRACK
     if (!$artist &&
         $title =~ m/^ ( .+? )     -+  \s* ( .+ )$/six);
 
@@ -5785,7 +5807,7 @@ sub canonical_url($;) {
   # "/...#NNNNN" => "/NNNNN"
   $url =~ s@^(https?://([a-z]+\.)?vimeo\.com/)[^\d].*\#(\d+)$@$1$3@s;
 
-  $url =~ s@^http:@https:@s;	# Always https.
+  $url =~ s@^http:@https:@s;  # Always https.
 
   my ($id, $site, $playlist_p);
 
@@ -5808,7 +5830,7 @@ sub canonical_url($;) {
   # Youtube "/verify_age" URLs.
   } elsif ($url =~
            m@^https?://(?:[a-z]+\.)?(youtube) (?:-nocookie)? \.com/+
-	     .* next_url=([^&\#]+)@sx ||
+       .* next_url=([^&\#]+)@sx ||
            $url =~ m@^https?://(?:[a-z]+\.)?google\.com/
                      .* service = (youtube)
                      .* continue = ( http%3A [^?&\#]+)@sx ||
@@ -5824,11 +5846,12 @@ sub canonical_url($;) {
     }
     $url = "https://www.$site.com$url" if ($url =~ m@^/@s);
 
-  # Youtube /watch/?v= or /watch#!v= or /v/ URLs.
+  # Youtube /watch/?v= or /watch#!v= or /v/ or /shorts/ URLs.
   } elsif ($url =~ m@^https?:// (?:[a-z]+\.)?
                      (youtube) (?:-nocookie)? (?:\.googleapis)? \.com/+
                      (?: (?: watch/? )? (?: \? | \#! ) v= |
                          v/ |
+                         shorts/ |
                          embed/ |
                          .*? &v= |
                          [^/\#?&]+ \#p(?: /[a-zA-Z\d] )* /
@@ -5848,14 +5871,20 @@ sub canonical_url($;) {
   # Vimeo /NNNNNN URLs
   # and player.vimeo.com/video/NNNNNN
   # and vimeo.com/m/NNNNNN
+
+  # Apr 2022: saw this new weird URL: https://vimeo.com/684758548/1eacbca96e
+  # I tried adding that to the ID, and with a colon, and it doesn't work.
+
   } elsif ($url =~
-           m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(?:video/|m/)?(\d+)@s) {
+           m@^https?://(?:[a-z]+\.)?(vimeo)\.com/(?:video/|m/)?(\d+(?:[:/][a-f\d]{10})?)@s) {
     ($site, $id) = ($1, $2);
+    $id =~ s@/@:@gs;
     $url = "https://$site.com/$id";
 
   # Vimeo /videos/NNNNNN URLs.
-  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+)@s) {
+  } elsif ($url =~ m@^https?://(?:[a-z]+\.)?(vimeo)\.com/.*/videos/(\d+(?:[:/][a-f\d]{10})?)@s) {
     ($site, $id) = ($1, $2);
+    $id =~ s@/@:@gs;
     $url = "https://$site.com/$id";
 
   # Vimeo /channels/name/NNNNNN URLs.
@@ -5911,7 +5940,7 @@ sub canonical_url($;) {
     error ("unparsable URL: $url");
   }
 
-  error ("bogus URL: $url") if ($id =~ m@[/:?]@s);
+  #error ("bogus URL: $url") if ($id =~ m@[/:?]@s);
 
   return ($url, $id, $site);
 }
@@ -5944,9 +5973,9 @@ sub mux_downloaded_files($$$$$$$) {
 
              '-i', $video_file,
              '-i', $audio_file,
-             '-map', '0:v:0',	# from file 0, video track 0
-             '-map', '1:a:0',	# from file 1, audio track 0
-             '-shortest');	# they should be the same length already
+             '-map', '0:v:0', # from file 0, video track 0
+             '-map', '1:a:0', # from file 1, audio track 0
+             '-shortest');  # they should be the same length already
 
   my $desc = 'merging';
   my $expect_same_size_p = 1;
@@ -5958,15 +5987,20 @@ sub mux_downloaded_files($$$$$$$) {
     $desc = 'transcoding';
     $muxed_file =~ s@\.[^./]+$@.mp4@gsi;
     $expect_same_size_p = 0;
-    push @cmd, ('-c:v',		'libx264',	# video codec
-                '-profile:v',	'high',
-                '-crf',		'22',		# h.264 quality (18 is high,
-                '-pix_fmt',	'yuv420p',	# 22 seems to match WebM)
-                '-acodec',	'aac',
-                '-ab',		'128k',		# audio bitrate
-                '-movflags',	'faststart');	# Move index to front
+    push @cmd, ('-c:v',   'libx264',  # video codec
+                '-profile:v', 'high',   # h.264 feature set allowed
+                '-preset',  'veryslow', # maximum effort on compression
+                '-crf',   '22',   # h.264 quality (18 is high,
+                '-pix_fmt', 'yuv420p',  # 22 seems to match WebM)
+              # '-acodec',  'aac',    # encode audio as AAC
+                '-acodec',  'libfdk_aac', #  higher quality encoder
+                '-b:a',   '192k',   # audio bitrate
+                '-movflags',  'faststart',  # Move index to front
+                # Avoid "Too many packets buffered" with sparse audio frames.
+                '-max_muxing_queue_size', '1024',
+               );
   } else {
-    push @cmd, ('-vcodec', 'copy',	# no re-encoding
+    push @cmd, ('-vcodec', 'copy',  # no re-encoding
                 '-acodec', 'copy');
   }
 
@@ -6137,6 +6171,8 @@ sub content_type_ext($;) {
   elsif ($ct =~ m@/(x-)?av1$@si)  { return 'av1';  }
   elsif ($ct =~ m@/quicktime$@si) { return 'mov';  }
   elsif ($ct =~ m@^audio/mp4$@si) { return 'm4a';  }
+  elsif ($ct =~ m@^audio/ec3$@si) { return 'ec3';  }
+  elsif ($ct =~ m@^audio/ac3$@si) { return 'ac3';  }
   else                            { return 'mp4';  }
 }
 
@@ -6161,8 +6197,8 @@ sub download_video_url($$$$$$$$$$$$) {
       $list_p, $list_idx, $list_count,
       $bwlimit, $progress_p, $force_fmt, $max_size) = @_;
 
-  $error_whiteboard = '';	# reset per-URL diagnostics
-  $progress_ticks = 0;		# reset progress-bar counters
+  $error_whiteboard = ''; # reset per-URL diagnostics
+  $progress_ticks = 0;    # reset progress-bar counters
   $progress_time = 0;
 
   # Pack multi-byte UTF-8 back into wide chars.
@@ -6290,7 +6326,7 @@ sub download_video_url($$$$$$$$$$$$) {
                   $site eq 'vimeo'   ? get_vimeo_year ($id)   : undef);
       if ($year &&
           $year  != (localtime())[5]+1900 &&   # Omit this year
-          $title !~ m@\b$year\b@s) {		 # Already in the title
+          $title !~ m@\b$year\b@s) {     # Already in the title
         $title .= " ($year)";
       }
     }
@@ -6581,9 +6617,9 @@ sub download_video_url_retry($$$$$$$$$$$$) {
     };
     $noerror = $ono;
 
-    last unless ($@);					# Done if no error.
-   #last unless ($@ =~ m@\b403 Forbidden@);	# Done if error but not 403.
-    last if ($@ =~ m/$blocked_re/sio);		# These errors don't go away.
+    last unless ($@);         # Done if no error.
+   #last unless ($@ =~ m@\b403 Forbidden@); # Done if error but not 403.
+    last if ($@ =~ m/$blocked_re/sio);    # These errors don't go away.
 
     $total_retries++;
 
@@ -6900,23 +6936,23 @@ sub main() {
       my $byte_suf = '(b|bps|ps|b/s|/s|B|Bps|BPS|PS|B/s|B/S|/S)?$';
 
       $bwlimit = shift @ARGV;
-      if      ($bwlimit =~ s@ \s*  k $bit_suf  @@sx) {	# k bits
+      if      ($bwlimit =~ s@ \s*  k $bit_suf  @@sx) {  # k bits
         $bwlimit *= 1024;
-      } elsif ($bwlimit =~ s@ \s*  K $byte_suf @@sx) {	# K bytes
+      } elsif ($bwlimit =~ s@ \s*  K $byte_suf @@sx) {  # K bytes
         $bwlimit *= 1024 * 8;
-      } elsif ($bwlimit =~ s@ \s*  m $bit_suf  @@sx) {	# m bits
+      } elsif ($bwlimit =~ s@ \s*  m $bit_suf  @@sx) {  # m bits
         $bwlimit *= 1024 * 1024;
-      } elsif ($bwlimit =~ s@ \s*  M $byte_suf @@sx) {	# M bytes
+      } elsif ($bwlimit =~ s@ \s*  M $byte_suf @@sx) {  # M bytes
         $bwlimit *= 1024 * 1024 * 8;
-      } elsif ($bwlimit =~ s@ \s*  g $bit_suf  @@sx) {	# g bits
+      } elsif ($bwlimit =~ s@ \s*  g $bit_suf  @@sx) {  # g bits
         $bwlimit *= 1024 * 1024 * 1024;
-      } elsif ($bwlimit =~ s@ \s*  G $byte_suf @@sx) {	# G bytes
+      } elsif ($bwlimit =~ s@ \s*  G $byte_suf @@sx) {  # G bytes
         $bwlimit *= 1024 * 1024 * 1024 * 8;
-      } elsif ($bwlimit =~ s@ \s*    $bit_suf  @@sx) {	# bits
+      } elsif ($bwlimit =~ s@ \s*    $bit_suf  @@sx) {  # bits
         $bwlimit += 0;
-      } elsif ($bwlimit =~ s@ \s*    $byte_suf @@sx) {	# Bytes
+      } elsif ($bwlimit =~ s@ \s*    $byte_suf @@sx) {  # Bytes
         $bwlimit /= 8;
-      } elsif ($bwlimit =~ m@^ \d+ ( \.\d+ )? $ @sx) {	# no units: k bits
+      } elsif ($bwlimit =~ m@^ \d+ ( \.\d+ )? $ @sx) {  # no units: k bits
         $bwlimit *= 1024;
       } else {
         error ("unparsable units: $bwlimit");
