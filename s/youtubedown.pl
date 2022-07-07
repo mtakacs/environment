@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1853 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1859 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -3068,6 +3068,11 @@ my %ciphers = (
   '5dedc3ae/player_ias.vflset/en_US/base' => '19156 w6 w21 r s2 r s2 w69 r s2',# 13 Jun 2022
   'df5197e2/player_ias.vflset/en_US/base' => '19157 w68 w11 w8 w38',# 14 Jun 2022
   'f05de49d/player_ias.vflset/en_US/base' => '19159 w21 s3 w6',   # 16 Jun 2022
+  '9017ba60/player_ias.vflset/en_US/base' => '19166 r s3 w1 s1 w13 r s1',# 23 Jun 2022
+  '9c24c545/player_ias.vflset/en_US/base' => '19167 w69 s3 r s2 r s1 w46 s3 r',# 24 Jun 2022
+  '60c2da65/player_ias.vflset/en_US/base' => '19170 w3 s3 r s1',  # 27 Jun 2022
+  'bc3f94c3/player_ias.vflset/en_US/base' => '19172 w69 r s1 w58 s2 r',# 29 Jun 2022
+  '0e7373c2/player_ias.vflset/en_US/base' => '19173 r s3 w23 s3 r',# 30 Jun 2022
 );
 
 
@@ -3166,7 +3171,7 @@ sub guess_cipher($;$$) {
     check_http_status ('-', $url, $http, 2);
 
     my @vids = ();
-    $body =~ s%/watch\?v=([^\"\'<>]+)%{
+    $body =~ s%/watch\?v=([^\"\'<>\s]+)%{
       push @vids, $1;
       '';
     }%gsex;
