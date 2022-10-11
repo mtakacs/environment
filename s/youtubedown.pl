@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1860 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1901 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -1253,7 +1253,7 @@ sub get_url_1_parallel($;$$$$$$$$) {
     my ($nfound, $timeleft) =
       select (my $rout = $rin, my $wout = $win, my $eout = $ein, $timeout);
     $timeout = $timeleft;
-    if (vec($rin, fileno($qurl0->{read_sock}), 1)) {
+    if (vec($rout, fileno($qurl0->{read_sock}), 1)) {
       qurl_read_chunk ($qurl0);
     }
   }
@@ -1338,7 +1338,7 @@ sub get_url_1_parallel($;$$$$$$$$) {
       select (my $rout = $rin, my $wout = $win, my $eout = $ein, $timeout);
     $timeout = $timeleft;
     foreach my $qurl (@running_queue) {
-      if (vec($rin, fileno($qurl->{read_sock}), 1)) {
+      if (vec($rout, fileno($qurl->{read_sock}), 1)) {
         qurl_read_chunk ($qurl);
       }
     }
@@ -3074,6 +3074,45 @@ my %ciphers = (
   'bc3f94c3/player_ias.vflset/en_US/base' => '19172 w69 r s1 w58 s2 r',# 29 Jun 2022
   '0e7373c2/player_ias.vflset/en_US/base' => '19173 r s3 w23 s3 r',# 30 Jun 2022
   '132602e8/player_ias.vflset/en_US/base' => '19184 s3 w11 s1 r w12 r w47',# 11 Jul 2022
+  '17327fbd/player_ias.vflset/en_US/base' => '19186 w23 w30 s3 r',# 13 Jul 2022
+  'dfd2e197/player_ias.vflset/en_US/base' => '19187 s3 r w55 s3 r s3 w48 w17 w43',# 14 Jul 2022
+  '9504bca9/player_ias.vflset/en_US/base' => '19191 s3 r w70 w62 w44 s1',# 18 Jul 2022
+  '011af516/player_ias.vflset/en_US/base' => '19193 r w25 r w16 s3 w16 r',# 20 Jul 2022
+  'afeb58ff/player_ias.vflset/en_US/base' => '19194 r w20 w3 s2', # 21 Jul 2022
+  '5784b7e4/player_ias.vflset/en_US/base' => '19198 w66 s2 w11',  # 25 Jul 2022
+  '240bde48/player_ias.vflset/en_US/base' => '19200 s3 w48 r s2 r s3 r',# 27 Jul 2022
+  'c8b8a173/player_ias.vflset/en_US/base' => '19201 w42 s3 w48 r',# 28 Jul 2022
+  '7a7465f5/player_ias.vflset/en_US/base' => '19205 w12 s2 w62',  # 01 Aug 2022
+  '7802ea37/player_ias.vflset/en_US/base' => '19207 s1 r s1 w28', # 03 Aug 2022
+  '2fd212f2/player_ias.vflset/en_US/base' => '19208 w35 r s3 r w45 w42 s3 w18',# 04 Aug 2022
+  '0d77e7db/player_ias.vflset/en_US/base' => '19212 w2 s1 r s3',  # 08 Aug 2022
+  '4c3f79c5/player_ias.vflset/en_US/base' => '19215 s1 w50 s1 r w37 r',# 11 Aug 2022
+  'c81bbb4a/player_ias.vflset/en_US/base' => '19219 w23 r s2 w63 s1 w37 w6 r',# 15 Aug 2022
+  '1f7d5369/player_ias.vflset/en_US/base' => '19221 s2 w51 w36 r s2 r w15 w57',# 17 Aug 2022
+  '009f1d77/player_ias.vflset/en_US/base' => '19222 w53 s1 r s1 w65 w61',# 18 Aug 2022
+  '0c356943/player_ias.vflset/en_US/base' => '19226 r w10 w69 w6 r s3 w27 w47 s3',# 22 Aug 2022
+  'dc0c6770/player_ias.vflset/en_US/base' => '19228 s1 r s2 w64 r w1 s1 w34',# 24 Aug 2022
+  'c2199353/player_ias.vflset/en_US/base' => '19229 w68 r s1 r s2 w31 w21 r w65',# 25 Aug 2022
+  '113ca41c/player_ias.vflset/en_US/base' => '19233 s3 r w23 r s3 r w14 r',# 29 Aug 2022
+  'c57c113c/player_ias.vflset/en_US/base' => '19235 w29 r s1 w30 s2 r s2',# 31 Aug 2022
+  '5a3b6271/player_ias.vflset/en_US/base' => '19236 r s3 r s3',   # 01 Sep 2022
+  'c16db54a/player_ias.vflset/en_US/base' => '19237 r s2 r',      # 02 Sep 2022
+  'a7eb1f5d/player_ias.vflset/en_US/base' => '19240 r w3 w60 r s1 w53 s2 w42 s1',# 05 Sep 2022
+  'f96f6702/player_ias.vflset/en_US/base' => '19242 w30 s1 w26 w11 s2',# 07 Sep 2022
+  '977792fa/player_ias.vflset/en_US/base' => '19243 w23 w36 s2 r s2 r',# 08 Sep 2022
+  '92f199c8/player_ias.vflset/en_US/base' => '19247 r w36 r s2 r s2 r',# 12 Sep 2022
+  'ec3f41f6/player_ias.vflset/en_US/base' => '19249 s3 w38 r w39 w37 r s1 w57',# 14 Sep 2022
+  'a97e97de/player_ias.vflset/en_US/base' => '19250 r s2 w5 r',   # 15 Sep 2022
+  '7577aaa2/player_ias.vflset/en_US/base' => '19254 w63 s1 r',    # 19 Sep 2022
+  '64947e15/player_ias.vflset/en_US/base' => '19256 s1 r s3 r s2 r',# 21 Sep 2022
+  'abfb84fe/player_ias.vflset/en_US/base' => '19257 w38 s3 w11 w34 w57',# 22 Sep 2022
+  'bd1343fa/player_ias.vflset/en_US/base' => '19261 s2 r w65 r s1',# 26 Sep 2022
+  '5248e50a/player_ias.vflset/en_US/base' => '19263 w68 w39 w16 w15 w61 w44',# 28 Sep 2022
+  'a336babc/player_ias.vflset/en_US/base' => '19264 r w44 w7 s2', # 29 Sep 2022
+  '374003a5/player_ias.vflset/en_US/base' => '19268 r s1 w41 r w41 s3 r w51',# 03 Oct 2022
+  '55fdc514/player_ias.vflset/en_US/base' => '19270 w1 r s2 w15 s2',# 05 Oct 2022
+  '17ab0793/player_ias.vflset/en_US/base' => '19271 r w52 w11 w25 w11 r s3 w49 s2',# 06 Oct 2022
+  '7a062b77/player_ias.vflset/en_US/base' => '19275 w19 r s3 w32 w2 w31',# 10 Oct 2022
 );
 
 
@@ -3766,7 +3805,7 @@ sub youtube_parse_dashmpd($$$$) {
   my @reps = split(/<Representation\b/si, $body2);
   shift @reps;
   foreach my $rep (@reps) {
-    my ($k)    = ($rep =~ m@id=[\'\"](\d+)@si);
+    my ($k)    = ($rep =~ m@id=[\'\"](.+?)[\'\"]@si);
     my ($url)  = ($rep =~ m@<BaseURL\b[^<>]*>([^<>]+)@si);
     my ($type) = ($rep =~ m@\bcodecs="(.*?)"@si);
     my ($w)    = ($rep =~ m@\bwidth="(\d+)"@si);
@@ -5024,6 +5063,7 @@ sub pick_download_format($$$$$$) {
    598 => { v => 'webm', w =>  256, h =>  144, a => undef               },
    599 => { v => undef,                        a => 'aac',  abr =>  30  },
    600 => { v => undef,                        a => 'opus', abr =>  35  },
+   'rawcc' => { },
   );
   #
   # The table on https://en.wikipedia.org/wiki/YouTube#Quality_and_formats
@@ -5198,6 +5238,9 @@ sub pick_download_format($$$$$$) {
   #   https://www.youtube.com/watch?v=-s0kuc-C4AI
   #   https://www.youtube.com/watch?v=qp9_L3E8yiM
   #   19-Dec-2020: HTML has ytInitialPlayerResponse but no adaptive_fmts, etc.
+  #
+  #   https://www.youtube.com/watch?v=pbRVqWbHGuo
+  #   21-Jul-2022: saw first non-integer format 'rawcc'
 
   # Divide %known_formats into muxed, video-only and audio-only lists.
   #
@@ -6404,6 +6447,7 @@ sub download_video_url($$$$$$$$$$$$) {
   }
 
   foreach my $target (@targets) {
+    error ("$id: no target") unless defined($target);
     my $fmt   = $fmts->{$target};
     my $ct    = $fmt->{content_type};
     my $w     = $fmt->{width};
