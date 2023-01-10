@@ -99,7 +99,8 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
-source /usr/local/opt/powerlevel10k/powerlevel10k.zsh-theme
+[[ ! -f /usr/local/opt/powerlevel10k/powerlevel10k.zsh-theme ]] || source /usr/local/opt/powerlevel10k/powerlevel10k.zsh-theme
+[[ ! -f /opt/homebrew/opt/powerlevel10k/powerlevel10k.zsh-theme ]] || source /opt/homebrew/opt/powerlevel10k/powerlevel10k.zsh-theme
 
 # redundant, its in the custom/*.zsh load loop
 # To customize prompt, run `p10k configure` or edit ~/.oh-my-zsh/custom/p10k.zsh.
