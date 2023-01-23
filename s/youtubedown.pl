@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1901 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1914 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -3113,6 +3113,18 @@ my %ciphers = (
   '55fdc514/player_ias.vflset/en_US/base' => '19270 w1 r s2 w15 s2',# 05 Oct 2022
   '17ab0793/player_ias.vflset/en_US/base' => '19271 r w52 w11 w25 w11 r s3 w49 s2',# 06 Oct 2022
   '7a062b77/player_ias.vflset/en_US/base' => '19275 w19 r s3 w32 w2 w31',# 10 Oct 2022
+  'f11bc515/player_ias.vflset/en_US/base' => '19277 s1 r s1 w33 s1 w47 w44 s3 r',# 12 Oct 2022
+  '1f77e565/player_ias.vflset/en_US/base' => '19278 w48 w43 s2 r s2 w39 w19 s1 r',# 13 Oct 2022
+  'a25d4acf/player_ias.vflset/en_US/base' => '19282 w41 s1 r',    # 17 Oct 2022
+  '24c6f8bd/player_ias.vflset/en_US/base' => '19284 w14 s1 r s3', # 19 Oct 2022
+  '4bbf8bdb/player_ias.vflset/en_US/base' => '19285 r w6 w45 s3', # 20 Oct 2022
+  '64588dad/player_ias.vflset/en_US/base' => '19291 w14 w14 r s2',# 26 Oct 2022
+  '19fc75cf/player_ias.vflset/en_US/base' => '19292 r w52 w34',   # 27 Oct 2022
+  '03bec62d/player_ias.vflset/en_US/base' => '19296 r s1 r w16 s2 r w29 w51',# 31 Oct 2022
+  'c4225c42/player_ias.vflset/en_US/base' => '19303 w60 w56 w43 s3 w55',# 07 Nov 2022
+  'b50b69c9/player_ias.vflset/en_US/base' => '19310 w55 r s2',    # 14 Nov 2022
+  '6870f412/player_ias.vflset/en_US/base' => '19312 w42 s1 w23 r s3 w52 s2',# 16 Nov 2022
+  '041a7965/player_ias.vflset/en_US/base' => '19313 s3 w43 r s1 w33 r',# 17 Nov 2022
 );
 
 
@@ -5063,6 +5075,12 @@ sub pick_download_format($$$$$$) {
    598 => { v => 'webm', w =>  256, h =>  144, a => undef               },
    599 => { v => undef,                        a => 'aac',  abr =>  30  },
    600 => { v => undef,                        a => 'opus', abr =>  35  },
+   694 => { v => 'av1',  w =>  256, h =>  144, a => undef               },
+   695 => { v => 'av1',  w =>  426, h =>  240, a => undef               },
+   696 => { v => 'av1',  w =>  640, h =>  360, a => undef               },
+   697 => { v => 'av1',  w =>  854, h =>  480, a => undef               },
+   698 => { v => 'av1',  w => 1280, h =>  720, a => undef               },
+   699 => { v => 'av1',  w => 1920, h => 1080, a => undef               },
    'rawcc' => { },
   );
   #
