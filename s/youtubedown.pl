@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# Copyright © 2007-2022 Jamie Zawinski <jwz@jwz.org>
+# Copyright © 2007-2023 Jamie Zawinski <jwz@jwz.org>
 #
 # Permission to use, copy, modify, distribute, and sell this software and its
 # documentation for any purpose is hereby granted without fee, provided that
@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1914 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1937 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -3125,6 +3125,28 @@ my %ciphers = (
   'b50b69c9/player_ias.vflset/en_US/base' => '19310 w55 r s2',    # 14 Nov 2022
   '6870f412/player_ias.vflset/en_US/base' => '19312 w42 s1 w23 r s3 w52 s2',# 16 Nov 2022
   '041a7965/player_ias.vflset/en_US/base' => '19313 s3 w43 r s1 w33 r',# 17 Nov 2022
+  '4eb6b35d/player_ias.vflset/en_US/base' => '19317 s2 r s3 r s1',# 21 Nov 2022
+  'e87a69df/player_ias.vflset/en_US/base' => '19324 w25 s2 r s1 w26',# 28 Nov 2022
+  'd75422b4/player_ias.vflset/en_US/base' => '19326 w51 w29 r s1 r w12 s3 w51',# 30 Nov 2022
+  'dab28f34/player_ias.vflset/en_US/base' => '19327 r w54 r s2 r w1 r s3 r',# 01 Dec 2022
+  'ac058a09/player_ias.vflset/en_US/base' => '19331 s1 r s1 w69 w17 s3 r w45',# 05 Dec 2022
+  '72d3c60a/player_ias.vflset/en_US/base' => '19333 w60 r w13 r', # 07 Dec 2022
+  'e96685ea/player_ias.vflset/en_US/base' => '19338 w50 s3 w23 r w44',# 12 Dec 2022
+  'a0703e0f/player_ias.vflset/en_US/base' => '19340 w2 s1 r s2 w67 w41 r w46 s2',# 14 Dec 2022
+  '34f9b71c/player_ias.vflset/en_US/base' => '19341 w61 r s2 r w46 s1',# 15 Dec 2022
+  '21149d65/player_ias.vflset/en_US/base' => '19345 w9 s3 r w23 w35 w8 s2 r',# 19 Dec 2022
+  'e5f6cbd5/player_ias.vflset/en_US/base' => '19359 w29 w66 s2 w17',# 02 Jan 2023
+  'd759e46a/player_ias.vflset/en_US/base' => '19366 w43 s1 r',    # 09 Jan 2023
+  '4248d311/player_ias.vflset/en_US/base' => '19369 r s2 r s3',   # 12 Jan 2023
+  'dac945fd/player_ias.vflset/en_US/base' => '19387 w20 s1 r s3 w48 r s2 w54',# 30 Jan 2023
+  '97ea7458/player_ias.vflset/en_US/base' => '19389 s1 w60 r w45 s3 w28 r',# 01 Feb 2023
+  'f565d246/player_ias.vflset/en_US/base' => '19394 s3 w35 w24 s3 w23 r w47 r',# 06 Feb 2023
+  'd405f6b4/player_ias.vflset/en_US/base' => '19401 w51 r s3 r s1',# 13 Feb 2023
+  '1cbba2b4/player_ias.vflset/en_US/base' => '19403 s1 r w38 r s1 w11 s2',# 15 Feb 2023
+  '11e3a4ec/player_ias.vflset/en_US/base' => '19404 w20 w8 w3 w62 w50 r s3 w70 r',# 16 Feb 2023
+  '9419f2ea/player_ias.vflset/en_US/base' => '19412 w36 s2 w6 w60 w22 w15 r',# 24 Feb 2023
+  'a897053d/player_ias.vflset/en_US/base' => '19415 w61 r s3 w53 r w24 r w17 s1',# 27 Feb 2023
+  '7862ca1f/player_ias.vflset/en_US/base' => '19417 w17 s1 r w65',# 01 Mar 2023
 );
 
 
@@ -3943,6 +3965,10 @@ sub load_youtube_formats_html($$$) {
   }
   $args = '' unless defined $args;
 
+  # Jan 2023: now just contains:
+  # {args:{raw_player_response:window.ytplayer.bootstrapPlayerResponse}};
+  $args = '' if (length($args) < 100);
+
   if (! $args) {
     # Try to find a better error message
     (undef, $err) = ($body =~ m@<( div | h1 ) \s+
@@ -3955,6 +3981,17 @@ sub load_youtube_formats_html($$$) {
     if ($err) {
       $err =~ s@^.*="yt-uix-button-content"[^<>]*>([^<>]+).*@$1@si;
       $err =~ s/<[^<>]*>//gs;
+    }
+
+    # Jan 2023: "playabilityStatus":{"status":"LOGIN_REQUIRED",
+    #           "reason":"Sign in to confirm your age", ... 
+    if (!$err) {
+      my ($p) = ($body =~ m@"playabilityStatus":(.*?)\}@si);
+      if ($p &&
+          $p !~ m/"status":"OK"/si &&
+          $p =~ m/"reason":"(.*?)"/si) {
+        $err = $1;
+      }
     }
 
     $err = "Rate limited: CAPCHA required"
@@ -4357,8 +4394,9 @@ sub load_youtube_formats($$$) {
 
   my $both = ($err1 || '') . ' ' . ($err2 || '');
   $err = 'age-restricted video is not embeddable'
-    if ($both =~ m/content warning/si &&
-        $both =~ m/not embeddable/si);
+    if (($both =~ m/content warning/si &&
+         $both =~ m/not embeddable/si) ||
+        $both =~ m/confirm your age/si);
 
   # It's rare, but there can be only one format available.
   # Keys: 18, cipher, title.
