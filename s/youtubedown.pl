@@ -72,7 +72,7 @@ use Encode;
 
 my $progname0 = $0;
 my $progname = $0; $progname =~ s@.*/@@g;
-my ($version) = ('$Revision: 1.1937 $' =~ m/\s(\d[.\d]+)\s/s);
+my ($version) = ('$Revision: 1.1959 $' =~ m/\s(\d[.\d]+)\s/s);
 
 # Without this, [:alnum:] doesn't work on non-ASCII.
 use locale;
@@ -3147,6 +3147,27 @@ my %ciphers = (
   '9419f2ea/player_ias.vflset/en_US/base' => '19412 w36 s2 w6 w60 w22 w15 r',# 24 Feb 2023
   'a897053d/player_ias.vflset/en_US/base' => '19415 w61 r s3 w53 r w24 r w17 s1',# 27 Feb 2023
   '7862ca1f/player_ias.vflset/en_US/base' => '19417 w17 s1 r w65',# 01 Mar 2023
+  '21246a91/player_ias.vflset/en_US/base' => '19422 w3 r w23 s2 w38 r w26 w22',# 06 Mar 2023
+  '837bca82/player_ias.vflset/en_US/base' => '19429 s3 w68 w53 s2 r w50',# 13 Mar 2023
+  '59acb1f3/player_ias.vflset/en_US/base' => '19431 r s2 w24',    # 15 Mar 2023
+  'c64a5d56/player_ias.vflset/en_US/base' => '19436 w39 s3 r w23 w36 s3 r w44',# 20 Mar 2023
+  'ace4d669/player_ias.vflset/en_US/base' => '19438 w7 r s1 w68 w53 s3',# 22 Mar 2023
+  '931a8913/player_ias.vflset/en_US/base' => '19443 w56 s2 r w57 w28 r',# 27 Mar 2023
+  'fa7eb95c/player_ias.vflset/en_US/base' => '19445 r w1 w1 w4 w36 r s1',# 29 Mar 2023
+  '7da8dd3e/player_ias.vflset/en_US/base' => '19450 r s2 r w17',  # 03 Apr 2023
+  '248ded94/player_ias.vflset/en_US/base' => '19457 w9 s1 r s3 r',# 10 Apr 2023
+  '36754c51/player_ias.vflset/en_US/base' => '19459 w19 w16 r s1 r s2 r',# 12 Apr 2023
+  '6f20102c/player_ias.vflset/en_US/base' => '19464 w45 w53 r s2 w27',# 17 Apr 2023
+  'd87d581f/player_ias.vflset/en_US/base' => '19466 s1 r s3 r w63 r w14 r',# 19 Apr 2023
+  '73d31b49/player_ias.vflset/en_US/base' => '19471 r s2 w41 w52 r w17 r w70 r',# 24 Apr 2023
+  '0c487f05/player_ias.vflset/en_US/base' => '19473 r s1 r w47 s1',# 26 Apr 2023
+  'c353919c/player_ias.vflset/en_US/base' => '19478 w23 r s1',    # 01 May 2023
+  '50cf60f0/player_ias.vflset/en_US/base' => '19480 w38 r w46 s3 r s1 r s3',# 03 May 2023
+  '65ceadf9/player_ias.vflset/en_US/base' => '19485 w4 r s2 r w19 s2 r s2 w41',# 08 May 2023
+  'cfa9e7cb/player_ias.vflset/en_US/base' => '19487 w59 w2 s1 w16 w18 s2 r',# 10 May 2023
+  'e50626d8/player_ias.vflset/en_US/base' => '19494 s1 w12 r w54 s2',# 17 May 2023
+  '41b8bed0/player_ias.vflset/en_US/base' => '19499 r s2 w55 r',  # 22 May 2023
+  'bbe1b497/player_ias.vflset/en_US/base' => '19501 s1 r w53 s1 w31 s3 r s2',# 24 May 2023
 );
 
 
@@ -3989,7 +4010,8 @@ sub load_youtube_formats_html($$$) {
       my ($p) = ($body =~ m@"playabilityStatus":(.*?)\}@si);
       if ($p &&
           $p !~ m/"status":"OK"/si &&
-          $p =~ m/"reason":"(.*?)"/si) {
+          ($p =~ m/"reason":"(.*?)"/si ||
+           $p =~ m/"messages":\["(.*?)"/si)) {
         $err = $1;
       }
     }
@@ -4397,6 +4419,8 @@ sub load_youtube_formats($$$) {
     if (($both =~ m/content warning/si &&
          $both =~ m/not embeddable/si) ||
         $both =~ m/confirm your age/si);
+  $err = 'private video'
+    if ($both =~ m/private video/si);
 
   # It's rare, but there can be only one format available.
   # Keys: 18, cipher, title.
