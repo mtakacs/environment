@@ -1,0 +1,77 @@
+#!/bin/bash
+#  -*- shell-script -*-
+#######################################################
+# $Id: .bash_misc,v 1.4 2005/10/26 02:54:36 tak Exp $
+# User specific functions, scripts, settings
+
+#################################
+# If you are a developer, uncomment the following to make sure core
+# dumps will be generated when they should be
+#################################
+ulimit -c unlimited
+
+#################################
+# Correct minor spelling errors in cd commands
+#################################
+shopt -s cdspell
+
+#################################
+# History: Save multi-line commands in history as single line
+#################################
+shopt -s cmdhist
+
+#################################
+# History: Do not delete your precious history file before writing the new one
+#################################
+shopt -s histappend
+
+#################################
+# History: If enabled, and the cmdhist option is enabled, multi-line commands
+# are saved to the history with embedded newlines rather than using semicolon
+# separators where possible
+#################################
+shopt -s lithist
+
+#################################
+# shell: Enable egrep-style pattern matching
+#################################
+shopt -s extglob
+
+#################################
+# shell: This option mostly keeps you from needing to run "hash -r" when you
+# modify directories in your path
+#################################
+shopt -s checkhash
+
+#################################
+# shell: check the window size after each command and, if necessary, update
+# the values of LINES and COLUMNS.
+#################################
+shopt -s checkwinsize
+
+#################################
+# shell: Set umask
+#################################
+#umask 0023
+
+#################################
+# Uncomment this if you are a vi user and hate Bash's Emacs keybindings
+#################################
+#set -o vi
+
+#################################
+# attempt to turn off annoying auto-complete beep
+# maybe these are in the wrong place
+#################################
+set nobeep  # doesnt work?
+set bell-style visual  # man bash?
+
+#################################
+# Turn off TTY "start" and "stop" commands (they default to C-q and C-s,
+# respectively, but Bash uses C-s to do a forward history search)
+#################################
+stty start ''
+stty stop ''
+
+#############################################################################
+# eof

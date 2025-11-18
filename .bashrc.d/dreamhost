@@ -1,0 +1,56 @@
+#!/bin/sh
+#  -*- shell-script -*-
+#######################################################
+# $Id: .bash_yahoo,v 1.36 2009/04/02 16:36:44 tak Exp $
+# yahoo alias
+#######################################################
+
+alias a=alias
+
+#################################
+# Source Code management
+#################################
+export CVS_RSH="ssh"
+export SVN_SSH="ssh"
+export RSYNC_RSH="ssh"
+export SSH_ASKPASS="1"
+export SVNROOT="svn+ssh://mtakacs@svn.project68.com/home/mtakacs_svn/svn/p68"
+a sshad="ssh-add ~/.ssh/id_rsa"  # ask for password and save to agent
+
+#################################
+# Are we root?
+#################################
+export CORPNET=`/bin/hostname | grep corp.yahoo`
+if [ "x$CORPNET" != "x" ]; then
+    # do nothing
+    foo=bar
+else
+    # echo "not on CORPNET"
+    export UIDCOLOR=${PCOLOR_YELLOW}
+fi
+
+# Prepend the YROOT alert to the existing Prompt
+if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
+    export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+then
+    export PS1="${prompt_yroot}${PS1}"
+fi
+
+#################################
+## CDPATH
+#################################
+export CDPATH=".:~"
+
+#################################
+# http://wiki.dreamhost.com/SSH#Passwordless_Login
+# use existing ssh-agent if possible
+#################################
+if [ -f ${HOME}/.ssh-agent ]; then
+   . ${HOME}/.ssh-agent > /dev/null
+fi
+if [ -z "$SSH_AGENT_PID" -o -z "`/bin/ps -a|/usr/bin/egrep \"^[ ]+$SSH_AGENT_PID\"`" ]; then
+   /usr/bin/ssh-agent > ${HOME}/.ssh-agent
+   . ${HOME}/.ssh-agent > /dev/null
+fi
+
+#eof

@@ -1,0 +1,385 @@
+#!/bin/sh
+#  -*- shell-script -*-
+#######################################################
+# $Id: .bash_export,v 1.18 2009/02/23 22:47:03 tak Exp $
+# User specific exports
+
+#######################################################
+# Bash Shell adjustments
+#######################################################
+
+#################################
+# Adjust the history settings
+#################################
+# Do *not* append the following to our history: consecutive
+# duplicate commands, ls, bg and fg, and exit. Don't keep useless
+# history commands. Note the last pattern is to not keep dangerous
+# commands in the history file.  Who really needs to repeat the
+# shutdown(8) command accidentally from your command history?
+HISTIGNORE='\&:fg:bg:ls:pwd:cd ..:cd ~-:cd -:cd:jobs:set -x:ls -l:ls -l:ll'
+export HISTIGNORE=${HISTIGNORE}':%1:%2:popd:top:pine:mutt:shutdown*'
+
+# Disk is cheap. Computer Memory is cheap. My memory isn't! Keep a
+# lot of history by default. 10K lines seems to go back about 6
+# months, and captures all of the wacky one-off shell scripts that
+# I might want again later.
+# for setting history length see HISTSIZE and HISTFILESIZE in bash(1)
+export HISTSIZE=10000
+export HISTFILESIZE=${HISTSIZE}
+
+# Reduce redundancy in the history file
+# don't put duplicate lines in the history. See bash(1) for more options
+# ... or force ignoredups and ignorespace
+export HISTCONTROL=ignoredups:ignorespace
+
+#################################
+# make less more friendly for non-text input files, see lesspipe(1)
+# the command exports LESSOPEN and LESSCLOSE
+#################################
+[ -x /usr/bin/lesspipe ] && eval "$(SHELL=/bin/sh lesspipe)"
+
+#################################
+# Define a nice prompt
+#################################
+
+
+# set variable identifying the chroot you work in (used in the prompt below)
+if [ -z "$debian_chroot" ] && [ -r /etc/debian_chroot ]; then
+    debian_chroot=$(cat /etc/debian_chroot)
+fi
+
+# Change the window title of X terminals
+case $TERM in
+    xterm*|rxvt|Eterm|eterm)
+        PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:${PWD/$HOME/~}\007"'
+        ;;
+    xterm-color)
+        color_prompt=yes
+        ;;
+    screen)
+        PROMPT_COMMAND='echo -ne "\033_${USER}@${HOSTNAME%%.*}:${PWD/$HOME/~}\033\\"'
+        ;;
+esac
+
+# uncomment for a colored prompt, if the terminal has the capability; turned
+# off by default to not distract the user: the focus in a terminal window
+# should be on the output of commands, not on the prompt
+#force_color_prompt=yes
+
+if [ -n "$force_color_prompt" ]; then
+    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+    # We have color support; assume it's compliant with Ecma-48
+    # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
+    # a case would tend to support setf rather than setaf.)
+      color_prompt=yes
+    else
+      color_prompt=
+    fi
+fi
+
+#################################
+#   How many characters of the $PWD should be kept
+# XXX: this doesn't seem to work for me
+#################################
+
+function prompt_command {
+    local pwdmaxlen=25
+
+    ### Indicator that there has been directory truncation:
+    #trunc_symbol="<"
+    local trunc_symbol="..."
+
+    if [ ${#PWD} -gt $pwdmaxlen ]
+        then
+        local pwdoffset=$(( ${#PWD} - $pwdmaxlen ))
+        newPWD="${trunc_symbol}${PWD:$pwdoffset:$pwdmaxlen}"
+    else
+        newPWD=${PWD}
+    fi
+}
+
+###e PROMPT_COMMAND=prompt_command
+
+### color definitions
+# BSD color
+# export CLICOLOR=1
+# export LSCOLORS="Exfxcxdxbxegedabagacad"
+# gnuls color, should use dircolor
+# export LS_COLORS="ex=35:di=36:ln=31:*.c=32:*.cpp=32:*.cc=32:*.cxx=32:*.h=33:*.hh=33:*.m=32"
+
+export PCOLOR_OFF="\[\033[00m\]"
+export PCOLOR_BLACK="\[\033[01;30m\]"
+export PCOLOR_RED="\[\033[01;31m\]"
+export PCOLOR_GREEN="\[\033[01;32m\]"
+export PCOLOR_YELLOW="\[\033[01;33m\]"
+export PCOLOR_BLUE="\[\033[01;34m\]"
+export PCOLOR_PURPLE="\[\033[01;35m\]"
+export PCOLOR_CYAN="\[\033[01;36m\]"
+export PCOLOR_WHITE="\[\033[01;37m\]"
+export PCOLOR_DEFAULT="\[\033[01;38m\]"
+
+#################################
+# Are we root?
+#################################
+if [ `/usr/bin/whoami` = 'root' ]
+then
+  export UIDCOLOR=${PCOLOR_RED}
+else
+  export UIDCOLOR=${PCOLOR_GREEN}
+fi
+
+#################################
+# Git Prompt settings
+# @see git-prompt.sh
+#################################
+
+export GIT_PS1_DESCRIBE_STYLE="branch"
+export GIT_PS1_HIDE_IF_PWD_IGNORED="true"
+export GIT_PS1_SHOWCOLORHINTS="true"
+export GIT_PS1_SHOWDIRTYSTATE="true"
+export GIT_PS1_SHOWSTASHSTATE="true"
+export GIT_PS1_SHOWUNTRACKEDFILES="true"
+export GIT_PS1_SHOWUPSTREAM="auto verbose git"
+#export GIT_PS1_STATESEPARATOR=" "
+
+## Configure Prompt
+## Do not set PS1 for dumb terminals or emacs
+## http://stackoverflow.com/questions/3058325/what-is-the-difference-between-ps1-and-prompt-command
+if [ "$TERM" != 'dumb'  ] && [ "$TERM" != 'emacs' ] && [ -n "$BASH" ]
+then
+  export PROMPT_COMMAND='__git_ps1 "\u@\h:\w" "\\\$ "'
+  #export PROMPT_COMMAND='__git_ps1 "g" "\u@\h:\w> "'
+  export PS1="${PCOLOR_OFF}${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+  # export PS1="${PCOLOR_OFF}\$(__git_ps1 '(%s)')${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W> ${PCOLOR_OFF}"
+  #export PS1="${UIDCOLOR}\u@\h:${PCOLOR_CYAN}\W\$(__git_ps1 '(%s)')> ${PCOLOR_OFF}"
+else
+    export PS1='\u@\h:\W> '
+    #export PS1='\u@\h:\W\$(__git_ps1 " (%s)")> '
+fi
+
+#################################
+# File Completions tweaks
+#################################
+FIGNORE=".o:~:.bak:.orig:.bat"
+
+#################################
+# Misc Settings
+#################################
+export EDITOR=vi
+[ -f /usr/bin/emacs ] && export EDITOR="/usr/bin/emacs -q"
+
+#################################
+# Output commands to set the
+# LS_COLORS environment variable.
+#################################
+# [ -f ${HOME}/.dircolors ] && [ -x /usr/bin/dircolors ] && eval `/usr/bin/dircolors ${HOME}/.dircolors`
+# enable color support of ls and also add handy aliases
+if [ -x /usr/bin/dircolors ]; then
+    test -r ${HOME}/.dircolors && eval "$(dircolors -b ${HOME}/.dircolors)" || eval "$(dircolors -b)"
+    alias ls='ls --color=auto'
+    #alias dir='dir --color=auto'
+    #alias vdir='vdir --color=auto'
+
+    alias grep='grep --color=auto'
+    alias fgrep='fgrep --color=auto'
+    alias egrep='egrep --color=auto'
+fi
+
+#################################
+# If you use Subversion, uncomment these and change them to reflect your
+# Subversion protocol and root. The example below assumes that your
+# Subversion root is a local directory, /var/svnroot. For a remote root,
+# you might set SVNPROTO to "svn+ssh://" and SVNROOT to
+# "svn.mydomain.tld/var/svnroot".
+#################################
+#export SVNPROTO=file://
+#export SVNROOT=/var/svnroot
+
+#################################
+# GRAILS, GROOVY, GRADLE HOME
+#################################
+
+export GRAILS_HOME="/usr/local/grails"
+export GRADLE_HOME="/usr/local/gradle"
+export GANT_HOME="/usr/local/gant"
+export GROOVY_HOME="/usr/local/groovy"
+export MAVEN_HOME="/usr/local/maven"
+
+#e CATALINA_HOME="/usr/local/apache-tomcat-6.0.32"
+[ -e /usr/local/tomcat6 ] && export CATALINA_HOME="/usr/local/tomcat6"
+[ -e /usr/local/tomcat7 ] && export CATALINA_HOME="/usr/local/tomcat7"
+
+#################################
+# JAVA HOME
+# Usually better to let this get set on it's own or in .bash_hostname
+#################################
+
+#export JAVA_HOME="/usr/java/jdk1.3.1"
+#export JAVA_HOME="/usr/local/jdk1.4.2/jdk"
+#export JAVA_HOME="/usr/local/jdk1.5.0_01"
+#export JAVA_HOME="/usr/local"
+
+#jpath="/usr/local/java-1.5.0 /home/y/libexec/jdk1.5.0 /usr /usr/local"
+#for p in $jpath; do
+#  if [ -e $p ]; then
+#    #echo "PATH: $p added";
+#    if [ -e $p/bin/java ]; then
+#        #echo "PATH: java found at $p";
+#        export JAVA_HOME=$p
+#    fi
+#  fi
+#done
+#unset jpath p
+#export JAVA_PATH="${JAVA_HOME}"
+
+#################################
+# PATH Foo
+#################################
+
+# System Paths
+
+##
+## BootStrap: Run all the system path fragments
+##
+if [ -x /usr/libexec/path_helper ]; then
+    eval `/usr/libexec/path_helper -s`
+fi
+
+path=""
+
+# my stuff
+path="$path $HOME/bin"
+path="$path $HOME/s"
+
+path="$path /usr/local/git/bin"
+path="$path /usr/local/perl/bin"
+path="$path /usr/local/bdb/bin"
+path="$path /usr/local/bin"
+
+path="$path /usr/bin"
+path="$path /bin"
+path="$path /usr/sbin"
+path="$path /sbin"
+path="$path /usr/X11/bin"
+path="$path /usr/X11R6/bin"
+path="$path /usr/local/sbin"
+path="$path /opt/local/bin"
+path="$path /opt/local/sbin"
+
+path="$path /opt/subversion/bin"
+path="$path ${GANT_HOME}/bin"
+path="$path ${MAVEN_HOME}/bin"
+#path="$path ${GRAILS_HOME}/bin"
+#path="$path ${GROOVY_HOME}/bin"
+path="$path /usr/local/openldap/bin"
+path="$path /usr/local/mysql/bin"
+path="$path /usr/local/ant/bin"
+path="$path /usr/local/packer"
+path="$path /opt/local/bin"
+path="$path /Applications/Mkvtoolnix.app/Contents/macOS"
+path="$path /usr/local/lib/python2.7/site-packages/usr/local/bin"
+path="$path ."
+
+###
+### only add stuff to path if it exists
+###
+for p in $path; do
+  if [ -d $p ]; then
+#    echo "PATH: $p added";
+    export PATH=${PATH}:$p
+  fi
+done
+unset path p
+
+#################################
+# CLASSPATH:
+#################################
+
+#################################
+# start clean
+CLASSPATH="."
+
+#################################
+# development jar files
+# List from least priority to most priority
+#jars=""
+#jars="$jars $SRC_OPDDIR/jsrc/jars/log4j.jar"
+#jars="$jars $MOJO_JAVA/xalan-j_1_2_2/xalan.jar"
+#jars="$jars $MOJO_JAVA/jaas1_0/lib/jaas.jar"
+#jars="$jars $MOJO_JAVA/ldapjdk/ldapjdk.jar"
+#jars="$jars $MOJO_JAVA/xerces-1.2.0/xerces.jar"
+#jars="$jars $MOJO_JAVA/xerces-1_3_0/xerces.jar"
+#jars="$jars $MOJO_JAVA/soap-2.1x/lib/soap.jar"
+#jars="$jars $MOJO_JAVA/oracle_jdbc-8.1.6.0.1/lib/classes12_01.zip"
+#jars="$jars $MOJO_JAVA/jndi-1.2.1/lib/jndi.jar"
+#jars="$jars $MOJO_JAVA/javamail-1.2/mail.jar"
+
+## Weblogic jars
+#wl_jars=""
+#wl_jars="$wl_jars $MOJO_JAVA/weblogic6.0/lib/weblogic.jar"
+#wl_jars="$wl_jars $MOJO_JAVA/weblogic6.0/lib/weblogic_sp.jar"
+## Ant jars
+#ant_jars=""
+#ant_jars="$ant_jars $MOJO_JAVA/ant-1.2/ant.jar"
+#ant_jars="$ant_jars $MOJO_JAVA/ant-1.2/jaxp.jar"
+#ant_jars="$ant_jars $MOJO_JAVA/ant-1.2/optional.jar"
+#ant_jars="$ant_jars $MOJO_JAVA/ant-1.2/parser.jar"
+## JMS jars
+#jms_jars=""
+#jms_jars="$jms_jars ${JMS_DIR}/jsse.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/jnet.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/jcert.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/swiftmq_ext_mailer.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/swiftmq.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/jms.jar"
+#jms_jars="$jms_jars ${JMS_DIR}/jndi.jar"
+## MIF jars
+#mif_jars=""
+#mif_jars="$mif_jars ${MIF_DIR}/standarddoclet.jar"
+#mif_jars="$mif_jars ${MIF_DIR}/mifoutput.jar"
+#mif_jars="$mif_jars ${MIF_DIR}/mif.jar"
+
+# Things listed first will be added to end of classpath
+#for jar in $mif_jars $jms_jars $ant_jars $wl_jars $jars; do
+#for jar in $jars; do
+#    echo "JAR: $jar";
+#    if [ -f $jar ]; then
+#        echo "JAR: $jar added";
+#	     CLASSPATH=$jar:$CLASSPATH
+#    fi
+#done
+
+#unset jar mif_jars jms_jars ant_jars wl_jars jars
+
+#################################
+# development classpath dirs
+
+classes=""
+classes="$classes ${SRC_OPDDIR}/jsrc"
+classes="$classes ${SRC_OPDDIR}/jsrc/classes"
+#classes="$classes $HOME/src/log4j/log4j"
+
+for class in $classes; do
+#    echo "CLASS = $class"
+    if [ -d $class ]; then
+      CLASSPATH=$class:$CLASSPATH
+#	echo "CLASS = $class added to CLASSPATH"
+    fi
+done
+
+unset class classes
+export CLASSPATH
+
+#################################
+## Boot2Docker shim
+#################################
+#eval $(boot2docker shellinit 2>/dev/null)
+
+
+## If we happen to compile stuff, optimize it
+export CFLAGS='-O2'
+
+
+
+#############################################################################
+# eof

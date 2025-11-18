@@ -1,0 +1,34 @@
+##
+## http://docstore.mik.ua/orelly/networking_2ndEd/ssh/ch06_03.htm
+##
+# Set up ssh-agent
+SSH_ENV="$HOME/.ssh/environment"
+#echo "Configuring SSH-AGENT"
+function start_agent {
+#    echo "Initializing new SSH agent..."
+    /usr/bin/ssh-agent | sed 's/^echo/#echo/' > "${SSH_ENV}"
+    #echo "Done"
+    chmod 600 "${SSH_ENV}"
+    . "${SSH_ENV}" > /dev/null
+    /usr/bin/ssh-add ~/.ssh/id_rsa &>/dev/null;
+    /usr/bin/ssh-add ~/.ssh/*pem &>/dev/null;
+}
+
+# Source SSH settings, if applicable
+#if [ -f "${SSH_ENV}" ]; then
+#    . "${SSH_ENV}" > /dev/null
+#    ps -ef | grep ${SSH_AGENT_PID} | grep ssh-agent$ > /dev/null || {
+#        start_agent;
+#    }
+#    /usr/bin/ssh-add ~/.ssh/*pem &>/dev/null;
+#else
+#    start_agent;
+#fi
+
+###
+### Auto-generate .ssh/config from component parts.
+##
+rm -f ${HOME}/.ssh/config
+## TODO: could replace with some fancy #ifdef to pull in different server definitions based on where we are
+cat ${HOME}/.ssh/config.d/* > ~/.ssh/config
+chmod 600 ~/.ssh/config

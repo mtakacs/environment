@@ -1,0 +1,33 @@
+#!/bin/sh
+
+if [ -x /usr/local/bin/screen ]; then
+    screen=/usr/local/bin/screen
+fi
+if [ -x /home/y/bin/screen ]; then
+    screen=/home/y/bin/screen
+fi
+if [ -x /usr/bin/screen ]; then
+    screen=/usr/bin/screen
+fi
+
+if [ -x /usr/local/bin/screen -o -x /usr/bin/screen -o -x /home/y/bin/screen ]; then
+    if [ -x /home/y/bin/emacs ]; then
+        clear
+    	echo "SCREEN yEMACS"
+        ${screen} -d -et -R -S emacs /home/y/bin/emacs -nw
+    else
+        clear
+    	echo "SCREEN default emacs"
+        ${screen} -d -et -R -S emacs emacs -nw
+    fi
+else
+    if [ -x /home/y/bin/emacs ]; then
+        clear
+    	echo "yEMACS"
+        /home/y/bin/emacs -nw
+    else
+        clear
+    	echo "emacs -nw"
+        emacs -nw
+    fi
+fi

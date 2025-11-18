@@ -1,0 +1,88 @@
+#!/bin/sh
+#  -*- shell-script -*-
+#######################################################
+#######################################################
+
+alias a=alias
+
+#################################
+# exports
+#################################
+
+export BLOG="50.18.123.151"
+export AWS1="50.18.127.91"
+export AWSIMG="184.169.163.163"
+export AWSAPEX="54.245.83.163"
+export AWSstages="ec2-54-214-86-145.us-west-2.compute.amazonaws.com"
+export AWSWWWS="ec2-54-241-105-139.us-west-1.compute.amazonaws.com"
+
+export AWS1jenkins="ec2-54-214-120-134.us-west-2.compute.amazonaws.com"
+
+export AWSbeta="ec2-54-214-113-146.us-west-2.compute.amazonaws.com"
+export AWSqa="ec2-50-112-231-198.us-west-2.compute.amazonaws.com"
+export AWSstage="ec2-54-245-184-223.us-west-2.compute.amazonaws.com"
+
+export AWSprod="ec2-54-215-121-251.us-west-1.compute.amazonaws.com"
+export AWSprodsmoke="ec2-54-241-208-40.us-west-1.compute.amazonaws.com"
+
+export AWS1billit="ec2-50-18-70-109.us-west-1.compute.amazonaws.com"
+export AWS1reportit="ec2-54-215-121-40.us-west-1.compute.amazonaws.com"
+export AWS1reporter="ec2-184-169-195-40.us-west-1.compute.amazonaws.com"
+export AWS1cstool="ec2-204-236-174-207.us-west-1.compute.amazonaws.com"
+
+export AWS_CREDENTIAL_FILE="${HOME}/.ssh/aws_credentials.properties"
+
+#################################
+# convenience destinations
+#################################
+
+a bushel="ssh -l root bushel"
+a blog="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${BLOG}"
+
+a aws1="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1}"
+a awsimg="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSIMG}"
+a awswwws="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSWWWS}"
+a awsapex="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSAPEX}"
+a aws1jenkins="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1jenkins}"
+
+a awsqa="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSqa}"
+a awsstage="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSstage}"
+a awsbeta="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSbeta}"
+
+a awsprod="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSprod}"
+a awsprodsmoke="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSprodsmoke}"
+
+a aws1billit="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1billit}"
+a aws1cstool="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1cstool}"
+a aws1reportit="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWS1reportit}"
+a aws1reporter="ssh -l ubuntu -i ~/.ssh/citruslane.pem ${AWS1reporter}"
+a awsstages="ssh -l ec2-user -i ~/.ssh/citruslane.pem ${AWSstages}"
+
+a sshaws="ssh -F ~/.ssh/config_aws"
+
+## remap LL
+a ll="/bin/ls -Fla"
+
+#################################
+# Run gradle as a daemon so as to avoid startup/teardown costs
+#   http://www.practicalgradle.org/blog/2010/11/gradle-daemon/
+#################################
+#e GRADLE_OPTS="-Dorg.gradle.daemon=true"
+
+#################################
+# grails options
+#################################
+#export GRAILS_FLAGS="--refresh-dependencies --https --stacktrace --plain-output --verbose"
+export GRAILS_FLAGS="--https --stacktrace --plain-output --verbose"
+export GRAILS_OPTS="-Xmx700m -XX:MaxPermSize=384m"   ##grails 2.x interactive console uses more than default space
+
+#################################
+# JAVA options
+#################################
+export JAVA_HOME="/System/Library/Frameworks/JavaVM.framework/Home"
+
+export EB_PATH=/usr/local/AWS-ElasticBeanstalk-CLI-2.5.1/eb/macosx/python2.7
+export PATH=$EB_PATH:$PATH
+
+
+#eof

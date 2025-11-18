@@ -1,0 +1,33 @@
+#!/bin/sh
+#  -*- shell-script -*-
+#######################################################
+#######################################################
+
+alias a=alias
+
+alias tunnel_nexus="ssh -fN -L 8081:10.126.172.13:8081 bastion.pad-4nd-infra"
+alias tunnel_nexus_kill="pskill 8081:10.126.172.13:8081"
+alias tunnel_jenkins="ssh -fN -L 49001:10.126.172.14:49001 bastion.pad-4nd-infra"
+alias tunnel_jenkins_kill="pskill 49001:10.126.172.14:49001"
+
+alias tunnel_mysql_perf="ssh -fN -L 3306:10.137.150.15:3306 bastion.pad-4nd-infra"
+alias tunnel_mysql_perf_kill="pskill 3306:10.137.150.15:3306"
+
+alias tunnel_playbooknp="ssh -l playbook -L 8080:10.47.32.49:80 sm-rsync.americasnp.saas.ca.com"
+
+#################################
+# exports
+#################################
+
+PATH="~/perl5/bin${PATH+:}$PATH"; export PATH;
+PERL5LIB="~/perl5/lib/perl5${PERL5LIB+:}$PERL5LIB"; export PERL5LIB;
+PERL_LOCAL_LIB_ROOT="~/perl5${PERL_LOCAL_LIB_ROOT+:}$PERL_LOCAL_LIB_ROOT"; export PERL_LOCAL_LIB_ROOT;
+PERL_MB_OPT="--install_base \"~/perl5\""; export PERL_MB_OPT;
+PERL_MM_OPT="INSTALL_BASE=~/perl5"; export PERL_MM_OPT;
+
+#################################
+# JAVA options
+#################################
+export JAVA_HOME=$(/usr/libexec/java_home)
+
+#eof

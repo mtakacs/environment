@@ -1,0 +1,7 @@
+#!/bin/sh
+
+## This session is called "vegas emacs" because when it's initialized,
+## I ssh to pim102-vm3.corp.yahoo.com and then run emacs.  Subsequent
+## vegas-emacs calls drop me right back there
+
+/usr/local/bin/screen -d -et -R -S vegasemacs /usr/bin/ssh-agent /bin/bash

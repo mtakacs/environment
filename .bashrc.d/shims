@@ -1,0 +1,41 @@
+#!/bin/sh
+
+##
+## Load rbenv automatically
+## Initialize Ruby rbEnv
+## @see https://github.com/rbenv/rbenv
+##
+
+if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi
+
+##
+## Load pyenv automatically
+## Initialize Python pyEnv
+## @see https://github.com/yyuu/pyenv
+## @see https://github.com/yyuu/pyenv-virtualenv
+##
+if which pyenv > /dev/null; then eval "$(pyenv init -)"; fi
+if which pyenv > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
+if which pyenv-virtualenv-init > /dev/null; then eval "$(pyenv virtualenv-init -)"; fi
+
+## Loads NVM
+[ -s $HOME/.nvm/nvm.sh ] && . $HOME/.nvm/nvm.sh # This loads NVM
+
+##
+## SDKMan shim
+##
+export SDKMAN_DIR="${HOME}/.sdkman"
+[[ -s $HOME/.sdkman/bin/sdkman-init.sh ]] && . $HOME/.sdkman/bin/sdkman-init.sh
+
+## bash_completion
+[[ -r "/opt/brew/etc/profile.d/bash_completion.sh" ]] && . "/opt/brew/etc/profile.d/bash_completion.sh"
+
+
+
+##
+## jenv 
+##
+if which jenv > /dev/null; then
+	export PATH="$HOME/.jenv/bin:$PATH"
+	eval "$(jenv init -)"
+fi

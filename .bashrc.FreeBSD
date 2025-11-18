@@ -1,0 +1,7 @@
+#  -*- shell-script -*-
+############################################################################
+# OS specific part of the bashrc, this is for FreeBSD machines
+#
+alias ls='/bin/ls -GF '
+alias l='/bin/ls -aGF '
+alias lsl='/bin/ls -alGF  '

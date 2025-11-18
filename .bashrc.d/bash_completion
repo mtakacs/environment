@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#  -*- shell-script -*-
+
+if [ -f $(brew --prefix)/etc/bash_completion ]; then
+  . $(brew --prefix)/etc/bash_completion
+fi
